@@ -437,17 +437,17 @@ classdef AOFforQt
             subplot(1,2,1);
             plot(tToPlot.', Sx1ToPlot.');
             hold on;
-            plot(tToPlot.', Se1ToPlot.', 'color', [240, 110, 50]/255);
+            plot(tToPlot.', Se1ToPlot.', 'color', [250, 180, 140]/255);
             hold on;
-            plot(tToPlot.', sqrtCrit1ToPlot.', 'color', [0, 110, 50]/255);
+            plot(tToPlot.', sqrtCrit1ToPlot.', 'color', [150, 140, 250]/255);
             legend('SxL1', 'SeL1', 'sqrtCritL1');
             
             subplot(1,2,2);
             plot(tToPlot.', Sx2ToPlot.');
             hold on;
-            plot(tToPlot.', Se2ToPlot.', 'color', [240, 110, 50]/255);
+            plot(tToPlot.', Se2ToPlot.', 'color', [250, 180, 140]/255);
             hold on;
-            plot(tToPlot.', sqrtCrit2ToPlot.', 'color', [0, 110, 50]/255);
+            plot(tToPlot.', sqrtCrit2ToPlot.', 'color', [150, 140, 240]/255);
             legend('SxL2', 'SeL2', 'sqrtCritL2');
                 
             end
