@@ -18,8 +18,7 @@ classdef AOFforQt
                
                 a(1, 1) = x(2);
                 a(2, 1) = -omega*omega*x(1) + alpha*x(2) - alpha*beta*x(1)*x(1)*x(2);
-            end
-            
+            end           
             if(condition == 1)
                 global a0;
                 global a1;
@@ -32,9 +31,7 @@ classdef AOFforQt
             if(condition == 2)
                 c(1, 1) = x(1);
                 c(2, 1) = x(2);
-            end
-            
-            
+            end            
             if(condition == 1)
                 global alpha1;
                 global alpha2;
@@ -48,8 +45,7 @@ classdef AOFforQt
                 B(1, 2) = 0;
                 B(2, 1) = 0;
                 B(2, 2) = x(1);
-            end
-            
+            end            
             if(condition == 1)
                 global g0;
                 global g1;
@@ -65,8 +61,7 @@ classdef AOFforQt
                 D(1, 2) = 0;
                 D(2, 1) = 0;
                 D(2, 2) = d22;   
-            end
-            
+            end           
             if(condition == 1)
                 global beta1;
                 global beta2;
@@ -96,8 +91,7 @@ classdef AOFforQt
                 A(1, 2) = 1;
                 A(2, 1) = -omega*omega - 2*alpha*beta*x(1)*x(2);
                 A(2, 2) = alpha*(1 - beta*x(1)*x(1));
-            end
-            
+            end           
             if(condition == 1)
                 global a0;
                 global a1;
@@ -112,8 +106,7 @@ classdef AOFforQt
                 G(1, 2) = 0;
                 G(2, 1) = 0;
                 G(2, 2) = 1;
-           end
-            
+           end            
            if(condition == 1)
                 global alpha1;
                 global alpha2;
@@ -146,8 +139,7 @@ classdef AOFforQt
         end
         
         function [ M ] = mathExpectation(Temp, condition)
-            global N;
-            
+            global N;          
             M = zeros(condition, 1);
             for i = 1:N
                 M = M + Temp(:, i);
@@ -261,8 +253,7 @@ classdef AOFforQt
            if(condition ==1)
                 NX = 1;
                 NY = 1;
-            end
-            
+           end            
                         
             % arrays for final table            
             tTable = ones(1, 1, K);
@@ -271,16 +262,14 @@ classdef AOFforQt
             MepsLTable = ones(NX, 1, K);
             SepsLTable = ones(NX, 1, K);
             CritLTable = ones(NX, 1, K);
-            ICritLTable = ones(NX, 1, K);
-            
+            ICritLTable = ones(NX, 1, K);          
             
             t = deltaTime;
             X = ones(NX, N);
             deltaY = ones(NX, N);
             Z = ones(NX, N);
             P = ones(NX, NY, N);
-            
-            
+                      
             rng(10);
             if(condition == 2)
                 for i = 1:N
@@ -301,38 +290,35 @@ classdef AOFforQt
             end
             
             % step #0
-                Mx = AOFforQt.mathExpectation(X, condition);
-                MepsL = AOFforQt.mathExpectation(X - Z, condition);
-                Dx = AOFforQt.dispersion(X, Mx, condition);
-                DepsL = AOFforQt.dispersion(X - Z, MepsL, condition);
-                Sx = ones(NX, 1);
-                Sx(1) = sqrt(Dx(1, 1));
-                Sx(NX) = sqrt(Dx(NX, NX));
-                
-                SepsL = ones(NX, 1);
-                SepsL(1) = sqrt(DepsL(1, 1));
-                SepsL(NX) = sqrt(DepsL(NX, NX));
-                
-                CritL = ones(NX, 1);
-                CritL(1) = MepsL(1)*MepsL(1) + DepsL(1, 1);
-                CritL(NX) = MepsL(NX)*MepsL(NX) + DepsL(NX, NX);
+            Mx = AOFforQt.mathExpectation(X, condition);
+            MepsL = AOFforQt.mathExpectation(X - Z, condition);
+            Dx = AOFforQt.dispersion(X, Mx, condition);
+            DepsL = AOFforQt.dispersion(X - Z, MepsL, condition);
 
-                ICritL = ones(NX, 1);
-                ICritL = CritL;
+            Sx = ones(NX, 1);
+            SepsL = ones(NX, 1);
+            CritL = ones(NX, 1);
+            ICritL = ones(NX, 1);
+            for i = 1:NX
+                Sx(i) = sqrt(Dx(i, i));
+                SepsL(i) = sqrt(DepsL(i, i));
+                CritL(i) = MepsL(i)*MepsL(i) + DepsL(i, i);
+            end
+            ICritL = CritL;
 
-                MxTable(:, :, 1) = Mx;
-                MepsLTable(:, :, 1) = MepsL;
-                SxTable(:, :, 1) = Sx;
-                SepsLTable(:, :, 1) = SepsL;
-                
-                CritLTable(:, :, 1) = CritL;
-                ICritLTable(:, :, 1) = ICritL;
-                
-                tTable(:, 1) = 0;
-            
-            
+            MxTable(:, :, 1) = Mx;
+            MepsLTable(:, :, 1) = MepsL;
+            SxTable(:, :, 1) = Sx;
+            SepsLTable(:, :, 1) = SepsL;              
+            CritLTable(:, :, 1) = CritL;
+            ICritLTable(:, :, 1) = ICritL;              
+            tTable(:, 1) = 0;
+                      
             sDeltaTime = sqrt(deltaTime);
-
+             
+            
+            stepForTrajectory = 2;  
+            
             % time loop
             for k = 2:K                
                 % realization loop
@@ -360,34 +346,30 @@ classdef AOFforQt
                 MepsL = AOFforQt.mathExpectation(X - Z, condition);
                 Dx = AOFforQt.dispersion(X, Mx, condition);
                 DepsL = AOFforQt.dispersion(X - Z, MepsL, condition);
+                
                 Sx = ones(NX, 1);
-                Sx(1) = sqrt(Dx(1, 1));
-                Sx(NX) = sqrt(Dx(NX, NX));
-                
                 SepsL = ones(NX, 1);
-                SepsL(1) = sqrt(DepsL(1, 1));
-                SepsL(NX) = sqrt(DepsL(NX, NX));
-                
                 CritL = ones(NX, 1);
-                CritL(1) = MepsL(1)*MepsL(1) + DepsL(1,1);
-                CritL(NX) = MepsL(NX)*MepsL(NX) + DepsL(NX,NX);
-
                 ICritL = ones(NX, 1);
+                for i = 1:NX
+                    Sx(i) = sqrt(Dx(i, i));
+                    SepsL(i) = sqrt(DepsL(i, i));
+                    CritL(i) = MepsL(i)*MepsL(i) + DepsL(i,i);
+                end          
                 ICritL = ICritLTable(:, :, k-1) + (CritL - ICritLTable(:, :, k-1)) / k;
                 
-
                 MxTable(:, :, k) = Mx;
                 MepsLTable(:, :, k) = MepsL;
                 SxTable(:, :, k) = Sx;
-                SepsLTable(:, :, k) = SepsL;
-                
+                SepsLTable(:, :, k) = SepsL;                
                 CritLTable(:, :, k) = CritL;
-                ICritLTable(:, :, k) = ICritL;
-                
+                ICritLTable(:, :, k) = ICritL;                
                 tTable(:, k) = t;
                 
                 t = (k) * deltaTime;
-               
+                
+                XForTrajectoryPlot(k) = X(:, stepForTrajectory);                   
+                
             end
             % end of time loop
 
@@ -398,21 +380,6 @@ classdef AOFforQt
                 for i = 1:K
                     disp(answMatrix(:,:,i));
                 end
-                for i = 1:K               
-                    SxToPlot(i) = SxTable(1, 1, i);
-                    SeToPlot(i) = SepsLTable(1, 1, i);
-                    sqrtCritToPlot(i) = sqrt(CritLTable(1, 1, i));
-                    tToPlot(i) = tTable(1, 1, i);
-                end
-            
-                figure('name', 'result');
-               
-                plot(tToPlot.', SxToPlot.');
-                hold on;
-                plot(tToPlot.', SeToPlot.');
-                hold on;
-                plot(tToPlot.', sqrtCritToPlot.');
-                legend('SxL', 'SeL', 'sqrtCritL');
             end
             if(condition == 2)
                 disp('     time       Mx1       Mx2     MepsL1     MepsL2     Sx1       Sx2     SepsL1    SepsL2    CritL1    CritL2    ICritL1   ICritL2');
@@ -422,40 +389,34 @@ classdef AOFforQt
                 for i = 1:K
                     disp(answMatrix(:,:,i));
                 end
+            end
+            
+            % plot Sx, Seps, Crit
+            figure('name', 'Sx; Seps; Crit');
+            for j = 1:NX
                 for i = 1:K
-                Sx1ToPlot(i) = SxTable(1, 1, i);
-                Se1ToPlot(i) = SepsLTable(1, 1, i);
-                sqrtCrit1ToPlot(i) = sqrt(CritLTable(1, 1, i));
-                
-                Sx2ToPlot(i) = SxTable(2, 1, i);
-                Se2ToPlot(i) = SepsLTable(2, 1, i);
-                sqrtCrit2ToPlot(i) = sqrt(CritLTable(2, 1, i));
-                tToPlot(i) = tTable(1, 1, i);
-            end
-            
-            figure('name', 'result');
-            subplot(1,2,1);
-            plot(tToPlot.', Sx1ToPlot.');
-            hold on;
-            plot(tToPlot.', Se1ToPlot.', 'color', [250, 180, 140]/255);
-            hold on;
-            plot(tToPlot.', sqrtCrit1ToPlot.', 'color', [150, 140, 250]/255);
-            legend('SxL1', 'SeL1', 'sqrtCritL1');
-            
-            subplot(1,2,2);
-            plot(tToPlot.', Sx2ToPlot.');
-            hold on;
-            plot(tToPlot.', Se2ToPlot.', 'color', [250, 180, 140]/255);
-            hold on;
-            plot(tToPlot.', sqrtCrit2ToPlot.', 'color', [150, 140, 240]/255);
-            legend('SxL2', 'SeL2', 'sqrtCritL2');
-                
-            end
+                    SxToPlot(i) = SxTable(j, 1, i);
+                    SeToPlot(i) = SepsLTable(j, 1, i);
+                    sqrtCritToPlot(i) = sqrt(CritLTable(j, 1, i));
+                    tToPlot(i) = tTable(1, 1, i);
+                end                
 
+                subplot(1,2,j);
+                plot(tToPlot.', SxToPlot.');
+                hold on;
+                plot(tToPlot.', SeToPlot.', 'color', [240, 110, 50]/255);
+                hold on;
+                plot(tToPlot.', sqrtCritToPlot.', 'color', [0, 110, 50]/255);
+                legend(strcat('SxL', int2str(j)), strcat('SeL', int2str(j)), strcat('sqrtCritL', int2str(j)));
+            end     
             
-           
+           % plot trajectory 
+           figure('name', 'trajectory; X(t)');
+           subplot(2,2,1);
+           plot(tToPlot.', SxToPlot.');
             
             
+                       
         end        
         % end of Kalman filter function
         
