@@ -233,7 +233,7 @@ classdef AOFforQt
         end
         
         
-        function[ ] = KalmanFilter(condition)
+        function[ ] = main(condition)
             
             % Initial conditions
             global deltaTime;
@@ -259,22 +259,30 @@ classdef AOFforQt
             tTable = ones(1, 1, K);
             MxTable = ones(NX, 1, K);
             SxTable = ones(NX, 1, K);
-            MepsLTable = ones(NX, 1, K);
-            SepsLTable = ones(NX, 1, K);
-            CritLTable = ones(NX, 1, K);
-            ICritLTable = ones(NX, 1, K);          
+            Meps_aofLTable = ones(NX, 1, K);
+            Seps_aofLTable = ones(NX, 1, K);
+            Crit_aofLTable = ones(NX, 1, K);
+            ICrit_aofLTable = ones(NX, 1, K);
+            Meps_fosLTable = ones(NX, 1, K);
+            Seps_fosLTable = ones(NX, 1, K);
+            Crit_fosLTable = ones(NX, 1, K);
+            ICrit_fosLTable = ones(NX, 1, K);
             
             t = deltaTime;
             X = ones(NX, N);
             deltaY = ones(NX, N);
-            Z = ones(NX, N);
+            Z_aofL = ones(NX, N);
+            Z_fosL = ones(NX, N);
             P = ones(NX, NY, N);
+            J = ones(NX, NY, N);
                       
             rng(10);
             if(condition == 2)
                 for i = 1:N
                     P(:, :, i) = [5, 0; 0, 5];
-                    Z(:, i) = [10, -3];
+                    J(:, :, i) = [5, 0; 0, 5];
+                    Z_aofL(:, i) = [10, -3];
+                    Z_fosL(:, i) = Z_aofL(:, i);
                     X(1, i) = normrnd(10, sqrt(5));
                     X(2, i) = normrnd(-3, sqrt(5));
 
@@ -284,34 +292,47 @@ classdef AOFforQt
             if(condition == 1)
                 for i = 1:N
                     X(:, i) = normrnd(MoX, SoX);
-                    Z(:, i) = normrnd(MoX, SoZ);
+                    Z_aofL(:, i) = normrnd(MoX, SoZ);
+                    Z_fosL(:, i) = Z_aofL(:, i);
                     P(:, :, i) = SoX * SoX;
                 end
             end
             
             % step #0
             Mx = AOFforQt.mathExpectation(X, condition);
-            MepsL = AOFforQt.mathExpectation(X - Z, condition);
+            Meps_aofL = AOFforQt.mathExpectation(X - Z_aofL, condition);
+            Meps_fosL = AOFforQt.mathExpectation(X - Z_fosL, condition);
             Dx = AOFforQt.dispersion(X, Mx, condition);
-            DepsL = AOFforQt.dispersion(X - Z, MepsL, condition);
+            Deps_aofL = AOFforQt.dispersion(X - Z_aofL, Meps_aofL, condition);
+            Deps_fosL = AOFforQt.dispersion(X - Z_fosL, Meps_aofL, condition);
 
             Sx = ones(NX, 1);
-            SepsL = ones(NX, 1);
-            CritL = ones(NX, 1);
-            ICritL = ones(NX, 1);
+            Seps_aofL = ones(NX, 1);
+            Crit_aofL = ones(NX, 1);
+            ICrit_aofL = ones(NX, 1);
+            Seps_fosL = ones(NX, 1);
+            Crit_fosL = ones(NX, 1);
+            ICrit_fosL = ones(NX, 1);
             for i = 1:NX
                 Sx(i) = sqrt(Dx(i, i));
-                SepsL(i) = sqrt(DepsL(i, i));
-                CritL(i) = MepsL(i)*MepsL(i) + DepsL(i, i);
+                Seps_aofL(i) = sqrt(Deps_aofL(i, i));
+                Crit_aofL(i) = Meps_aofL(i)*Meps_aofL(i) + Deps_aofL(i, i);
+                Seps_fosL(i) = sqrt(Deps_fosL(i, i));
+                Crit_fosL(i) = Meps_fosL(i)*Meps_fosL(i) + Deps_fosL(i, i);
             end
-            ICritL = CritL;
+            ICrit_aofL = Crit_aofL;
+            ICrit_fosL = Crit_fosL;
 
             MxTable(:, :, 1) = Mx;
-            MepsLTable(:, :, 1) = MepsL;
+            Meps_aofLTable(:, :, 1) = Meps_aofL;
             SxTable(:, :, 1) = Sx;
-            SepsLTable(:, :, 1) = SepsL;              
-            CritLTable(:, :, 1) = CritL;
-            ICritLTable(:, :, 1) = ICritL;              
+            Seps_aofLTable(:, :, 1) = Seps_aofL;              
+            Crit_aofLTable(:, :, 1) = Crit_aofL;
+            ICrit_aofLTable(:, :, 1) = ICrit_aofL;   
+            Meps_fosLTable(:, :, 1) = Meps_fosL;
+            Seps_fosLTable(:, :, 1) = Seps_fosL;              
+            Crit_fosLTable(:, :, 1) = Crit_fosL;
+            ICrit_fosLTable(:, :, 1) = ICrit_fosL;
             tTable(:, 1) = 0;
                       
             sDeltaTime = sqrt(deltaTime);
@@ -334,37 +355,58 @@ classdef AOFforQt
                     deltaY(:, i) = AOFforQt.c(t, X(:, i), condition)*deltaTime + ...
                         AOFforQt.D(t, X(:, i), condition)*deltaV2;                             
    
-                    Z(:, i) = Z(:, i) + AOFforQt.a(t, Z(:, i), condition)*deltaTime + ...
-                        AOFforQt.K(t, Z(:, i), P(:, :, i), condition)*(deltaY(:, i) - ...
-                        AOFforQt.c(t, Z(:, i), condition)*deltaTime);
-                    P(:, :, i) = P(:, :, i) +  AOFforQt.Ksi(t, Z(:, i), P(:, :, i), condition)*deltaTime;
+                    Z_aofL(:, i) = Z_aofL(:, i) + AOFforQt.a(t, Z_aofL(:, i), condition)*deltaTime + ...
+                        AOFforQt.K(t, Z_aofL(:, i), P(:, :, i), condition)*(deltaY(:, i) - ...
+                        AOFforQt.c(t, Z_aofL(:, i), condition)*deltaTime);
+                    P(:, :, i) = P(:, :, i) +  AOFforQt.Ksi(t, Z_aofL(:, i), P(:, :, i), condition)*deltaTime;
+                    
+                    Z_fosL(:, i) = Z_fosL(:, i) + AOFforQt.a(t, Z_fosL(:, i), condition)*deltaTime + ...
+                        AOFforQt.K(t, Z_fosL(:, i), J(:, :, i), condition)*(deltaY(:, i) - ...
+                        AOFforQt.c(t, Z_fosL(:, i), condition)*deltaTime);
+                    Mx = AOFforQt.mathExpectation(X, condition);
+                    Mz = AOFforQt.mathExpectation(Z_fosL, condition);
+                    Dx = AOFforQt.dispersion(X, Mx, condition);
+                    Dz = AOFforQt.dispersion(Z_fosL, Mz, condition);
+                    J(:, :, i) = Dx - Dz;
                          
                 end
                 % end of realization loop
 
                 % calculation of characteristics
                 Mx = AOFforQt.mathExpectation(X, condition);
-                MepsL = AOFforQt.mathExpectation(X - Z, condition);
+                Meps_aofL = AOFforQt.mathExpectation(X - Z_aofL, condition);
+                Meps_fosL = AOFforQt.mathExpectation(X - Z_fosL, condition);
                 Dx = AOFforQt.dispersion(X, Mx, condition);
-                DepsL = AOFforQt.dispersion(X - Z, MepsL, condition);
+                Deps_aofL = AOFforQt.dispersion(X - Z_aofL, Meps_aofL, condition);
+                Deps_fosL = AOFforQt.dispersion(X - Z_fosL, Meps_aofL, condition);
                 
                 Sx = ones(NX, 1);
-                SepsL = ones(NX, 1);
-                CritL = ones(NX, 1);
-                ICritL = ones(NX, 1);
+                Seps_aofL = ones(NX, 1);
+                Crit_aofL = ones(NX, 1);
+                ICrit_aofL = ones(NX, 1);
+                Seps_fosL = ones(NX, 1);
+                Crit_fosL = ones(NX, 1);
+                ICrit_fosL = ones(NX, 1);
                 for i = 1:NX
                     Sx(i) = sqrt(Dx(i, i));
-                    SepsL(i) = sqrt(DepsL(i, i));
-                    CritL(i) = MepsL(i)*MepsL(i) + DepsL(i,i);
+                    Seps_aofL(i) = sqrt(Deps_aofL(i, i));
+                    Crit_aofL(i) = Meps_aofL(i)*Meps_aofL(i) + Deps_aofL(i,i);
+                    Seps_fosL(i) = sqrt(Deps_fosL(i, i));
+                    Crit_fosL(i) = Meps_fosL(i)*Meps_fosL(i) + Deps_fosL(i,i);
                 end          
-                ICritL = ICritLTable(:, :, k-1) + (CritL - ICritLTable(:, :, k-1)) / k;
+                ICrit_aofL = ICrit_aofLTable(:, :, k-1) + (Crit_aofL - ICrit_aofLTable(:, :, k-1)) / k;
+                ICrit_fosL = ICrit_fosLTable(:, :, k-1) + (Crit_fosL - ICrit_fosLTable(:, :, k-1)) / k;
                 
                 MxTable(:, :, k) = Mx;
-                MepsLTable(:, :, k) = MepsL;
+                Meps_aofLTable(:, :, k) = Meps_aofL;
                 SxTable(:, :, k) = Sx;
-                SepsLTable(:, :, k) = SepsL;                
-                CritLTable(:, :, k) = CritL;
-                ICritLTable(:, :, k) = ICritL;                
+                Seps_aofLTable(:, :, k) = Seps_aofL;                
+                Crit_aofLTable(:, :, k) = Crit_aofL;
+                ICrit_aofLTable(:, :, k) = ICrit_aofL;
+                Meps_fosLTable(:, :, k) = Meps_fosL;
+                Seps_fosLTable(:, :, k) = Seps_fosL;                
+                Crit_fosLTable(:, :, k) = Crit_fosL;
+                ICrit_fosLTable(:, :, k) = ICrit_fosL;   
                 tTable(:, k) = t;
                 
                 t = (k) * deltaTime;
@@ -376,17 +418,30 @@ classdef AOFforQt
 
             % displaying the table
             if(condition == 1)
-                disp('     time       Mx       MepsL      Sx      SepsL      CritL     ICritL');
-                answMatrix = [tTable, MxTable, MepsLTable, SxTable, SepsLTable, CritLTable, ICritLTable];
+                disp('     time       Mx     Meps_aofL    Sx    Seps_aofL   Crit_aofL  ICrit_aofL');
+                answMatrix = [tTable, MxTable, Meps_aofLTable, SxTable, Seps_aofLTable, Crit_aofLTable, ICrit_aofLTable];
+                for i = 1:K
+                    disp(answMatrix(:,:,i));
+                end
+                disp('     time       Mx     Meps_fosL    Sx    Seps_fosL   Crit_fosL  ICrit_fosL');
+                answMatrix = [tTable, MxTable, Meps_fosLTable, SxTable, Seps_fosLTable, Crit_fosLTable, ICrit_fosLTable];
                 for i = 1:K
                     disp(answMatrix(:,:,i));
                 end
             end
             if(condition == 2)
-                disp('     time       Mx1       Mx2     MepsL1     MepsL2     Sx1       Sx2     SepsL1    SepsL2    CritL1    CritL2    ICritL1   ICritL2');
-                answMatrix = [tTable, MxTable(1, :, :), MxTable(2, :, :), MepsLTable(1, :, :), MepsLTable(2, :, :), ...
-                    SxTable(1, :, :), SxTable(2, :, :), SepsLTable(1, :, :), SepsLTable(2, :, :), CritLTable(1, :, :), CritLTable(2, :, :), ...
-                    ICritLTable(1, :, :), ICritLTable(2, :, :)];
+                disp('     time       Mx1       Mx2   MepsAofL1  MepsAofL2    Sx1      Sx2    SepsAofL1 SepsAofL2  CritAofL1 CritAofL2 ICritAofL1 ICritAofL2');
+                answMatrix = [tTable, MxTable(1, :, :), MxTable(2, :, :), Meps_aofLTable(1, :, :), Meps_aofLTable(2, :, :), ...
+                    SxTable(1, :, :), SxTable(2, :, :), Seps_aofLTable(1, :, :), Seps_aofLTable(2, :, :), Crit_aofLTable(1, :, :), Crit_aofLTable(2, :, :), ...
+                    ICrit_aofLTable(1, :, :), ICrit_aofLTable(2, :, :)];
+                for i = 1:K
+                    disp(answMatrix(:,:,i));
+                end
+                
+                disp('     time       Mx1       Mx2   MepsFosL1  MepsFosL2    Sx1      Sx2    SepsFosL1 SepsFosL2  CritFosL1 CritFosL2 ICritFosL1 ICritFosL2');
+                answMatrix = [tTable, MxTable(1, :, :), MxTable(2, :, :), Meps_fosLTable(1, :, :), Meps_fosLTable(2, :, :), ...
+                    SxTable(1, :, :), SxTable(2, :, :), Seps_fosLTable(1, :, :), Seps_fosLTable(2, :, :), Crit_fosLTable(1, :, :), Crit_fosLTable(2, :, :), ...
+                    ICrit_fosLTable(1, :, :), ICrit_fosLTable(2, :, :)];
                 for i = 1:K
                     disp(answMatrix(:,:,i));
                 end
@@ -397,34 +452,42 @@ classdef AOFforQt
             for j = 1:NX
                 for i = 1:K
                     SxToPlot(i) = SxTable(j, 1, i);
-                    SeToPlot(i) = SepsLTable(j, 1, i);
-                    sqrtCritToPlot(i) = sqrt(CritLTable(j, 1, i));
+                    SeAofLToPlot(i) = Seps_aofLTable(j, 1, i);
+                    SeFosLToPlot(i) = Seps_fosLTable(j, 1, i);
+                    sqrtCrit_aofLToPlot(i) = sqrt(Crit_aofLTable(j, 1, i));
+                    sqrtCrit_fosLToPlot(i) = sqrt(Crit_fosLTable(j, 1, i));
                     tToPlot(i) = tTable(1, 1, i);
                 end                
 
                 subplot(1,2,j);
                 plot(tToPlot.', SxToPlot.');
                 hold on;
-                plot(tToPlot.', SeToPlot.', 'color', [240, 110, 50]/255);
+                plot(tToPlot.', SeAofLToPlot.', 'color', [240, 110, 50]/255);
                 hold on;
-                plot(tToPlot.', sqrtCritToPlot.', 'color', [0, 110, 50]/255);
-                legend(strcat('SxL', int2str(j)), strcat('SeL', int2str(j)), strcat('sqrtCritL', int2str(j)));
+                plot(tToPlot.', sqrtCrit_aofLToPlot.', 'color', [0, 110, 50]/255);
+                hold on;
+                plot(tToPlot.', SeFosLToPlot.', 'k');
+                hold on;
+                plot(tToPlot.', sqrtCrit_fosLToPlot.', 'color', [200, 180, 10]/255);
+                legend(strcat('Sx', int2str(j)), strcat('SeAOF-L', int2str(j)), strcat('sqrtCrit-aofL', int2str(j)), strcat('SeFOS-L', int2str(j)), strcat('sqrtCrit-fosL', int2str(j)));
             end     
-            
-           % plot trajectory 
-           figure('name', 'trajectory; X(t)');
-           subplot(2,2,1);
-           plot(XForTrajectoryPlot(1, :).', XForTrajectoryPlot(2, :).');
-           xlabel('X1'); 
-           ylabel('X2');
-           subplot(2,2,3);
-           plot(tToPlot.'.', XForTrajectoryPlot(1, :).');
-           xlabel('t'); 
-           ylabel('X1');
-           subplot(2,2,4);
-           plot(tToPlot.'.', XForTrajectoryPlot(2, :).');
-           xlabel('t'); 
-           ylabel('X2');
+           
+            if(condition == 2)
+               % plot trajectory 
+               figure('name', 'trajectory; X(t)');
+               subplot(2,2,1);
+               plot(XForTrajectoryPlot(1, :).', XForTrajectoryPlot(2, :).');
+               xlabel('X1'); 
+               ylabel('X2');
+               subplot(2,2,3);
+               plot(tToPlot.'.', XForTrajectoryPlot(1, :).');
+               xlabel('t'); 
+               ylabel('X1');
+               subplot(2,2,4);
+               plot(tToPlot.'.', XForTrajectoryPlot(2, :).');
+               xlabel('t'); 
+               ylabel('X2');
+            end
                
         end        
         % end of Kalman filter function
