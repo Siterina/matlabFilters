@@ -15,7 +15,6 @@ classdef AOFforQt
                 global omega;
                 global alpha;
                 global beta;
-               
                 a(1, 1) = x(2);
                 a(2, 1) = -omega*omega*x(1) + alpha*x(2) - alpha*beta*x(1)*x(1)*x(2);
             end           
@@ -40,20 +39,22 @@ classdef AOFforQt
         end
         
         function [ B ] = B(t, x, condition)
+            global gamma;
             if(condition == 2)
                 B(1, 1) = 0;
                 B(1, 2) = 0;
                 B(2, 1) = 0;
-                B(2, 2) = x(1);
+                B(2, 2) = gamma*x(1);
             end            
             if(condition == 1)
                 global g0;
                 global g1;
-                B = g0 + g1 * x;
+                B = (g0 + g1 * x)*gamma;
             end
         end
         
         function [ D ] = D(t, x, condition)
+            global gamma;
             if(condition == 2)
                 global d11;
                 global d22;
@@ -61,11 +62,12 @@ classdef AOFforQt
                 D(1, 2) = 0;
                 D(2, 1) = 0;
                 D(2, 2) = d22;   
+                D = D*gamma;
             end           
             if(condition == 1)
                 global beta1;
                 global beta2;
-                D = beta1 + beta2 * x;
+                D = (beta1 + beta2 * x)*gamma;
             end
         end
         
@@ -118,7 +120,7 @@ classdef AOFforQt
         % structure functions
         
         function [ K ] = K(t, x, p, condition) 
-            K = p * AOFforQt.G(t, x, condition).' * inv(AOFforQt.R(t, x, condition));
+            K = p * AOFforQt.G(t, x, condition).' /(AOFforQt.R(t, x, condition));
         end
         
         function [ Ksi ] = Ksi(t, x, p, condition)                        
@@ -193,6 +195,8 @@ classdef AOFforQt
             global beta;
             global d11;
             global d22;
+            global DoX;
+            global gamma;
             
             global deltaTime;
             global N;
@@ -220,10 +224,12 @@ classdef AOFforQt
             beta = 1;
             d11 = 0.1;
             d22 = 0.1;
+            DoX = 0.3;
+            gamma = 1;
             
-            N = 1500;
-            K = 7;
-            deltaTime = 0.0005;
+            N = 800;
+            K = 20;
+            deltaTime = 0.003;
             
             MoX = 0.1;                                                     % Характеристики нач. усл. объекта, измерителя и фильтра
             MoY = 0.0;
@@ -244,6 +250,8 @@ classdef AOFforQt
             global SoX;
             global SoY;
             global SoZ;
+            
+            global DoX;
 
             AOFforQt.initialConditions();
             if(condition == 2)
@@ -276,17 +284,29 @@ classdef AOFforQt
             P = ones(NX, NY, N);
             J = ones(NX, NY, N);
                       
+            
+%             t = zeros(1,100);
+%             for n = 1:100
+%                 A = rand(n,n);
+%                 B = rand(n,n);
+%                 tic;
+%                 C = A*B;
+%                 t(n) = toc;
+%             end
+%             plot(t)
+
+            
             rng(10);
             if(condition == 2)
-                for i = 1:N
-                    P(:, :, i) = [5, 0; 0, 5];
-                    J(:, :, i) = [5, 0; 0, 5];
+                 for i = 1:N;
+                    P(:, :, i) = [DoX, 0; 0, DoX];
+                    J(:, :, i) = [DoX, 0; 0, DoX];
                     Z_aofL(:, i) = [10, -3];
                     Z_fosL(:, i) = Z_aofL(:, i);
-                    X(1, i) = normrnd(10, sqrt(5));
-                    X(2, i) = normrnd(-3, sqrt(5));
 
-                end
+                    X(1, i) = normrnd(10, sqrt(DoX));
+                    X(2, i) = normrnd(-3, sqrt(DoX));
+                 end
             end
             
             if(condition == 1)
@@ -305,14 +325,17 @@ classdef AOFforQt
             Dx = AOFforQt.dispersion(X, Mx, condition);
             Deps_aofL = AOFforQt.dispersion(X - Z_aofL, Meps_aofL, condition);
             Deps_fosL = AOFforQt.dispersion(X - Z_fosL, Meps_aofL, condition);
+            Mz = AOFforQt.mathExpectation(Z_fosL, condition);
+            Dz = AOFforQt.dispersion(Z_fosL, Mz, condition);
+            
 
             Sx = ones(NX, 1);
             Seps_aofL = ones(NX, 1);
             Crit_aofL = ones(NX, 1);
-            ICrit_aofL = ones(NX, 1);
+            %ICrit_aofL = ones(NX, 1);
             Seps_fosL = ones(NX, 1);
             Crit_fosL = ones(NX, 1);
-            ICrit_fosL = ones(NX, 1);
+           % ICrit_fosL = ones(NX, 1);
             for i = 1:NX
                 Sx(i) = sqrt(Dx(i, i));
                 Seps_aofL(i) = sqrt(Deps_aofL(i, i));
@@ -338,22 +361,27 @@ classdef AOFforQt
             sDeltaTime = sqrt(deltaTime);
              
             
-            stepForTrajectory = 777; %from 1500
+            stepForTrajectory = 400; %from N
             XForTrajectoryPlot(:, 1) = X(:, stepForTrajectory);
             
             % time loop
             for k = 2:K                
                 % realization loop
+                
+                
+                deltaV = normrnd(0, sDeltaTime, NX, 2, N);
+                q = zeros(1,N);
+                tic;
                 for i = 1:N
                     
-                    deltaV1 = normrnd(0, sDeltaTime, NX, 1);
-                    deltaV2 = normrnd(0, sDeltaTime, NX, 1); 
-                   
+%                     deltaV1 = normrnd(0, sDeltaTime, NX, 1);
+%                     deltaV2 = normrnd(0, sDeltaTime, NX, 1); 
+                        
                     X(:, i) = X(:, i) + AOFforQt.a(t, X(:, i), condition)*deltaTime + ...
-                        AOFforQt.B(t, X(:, i), condition)*deltaV1;
+                        AOFforQt.B(t, X(:, i), condition)*deltaV(:, 1, i);
 
                     deltaY(:, i) = AOFforQt.c(t, X(:, i), condition)*deltaTime + ...
-                        AOFforQt.D(t, X(:, i), condition)*deltaV2;                             
+                        AOFforQt.D(t, X(:, i), condition)*deltaV(:, 2, i);                             
    
                     Z_aofL(:, i) = Z_aofL(:, i) + AOFforQt.a(t, Z_aofL(:, i), condition)*deltaTime + ...
                         AOFforQt.K(t, Z_aofL(:, i), P(:, :, i), condition)*(deltaY(:, i) - ...
@@ -363,13 +391,12 @@ classdef AOFforQt
                     Z_fosL(:, i) = Z_fosL(:, i) + AOFforQt.a(t, Z_fosL(:, i), condition)*deltaTime + ...
                         AOFforQt.K(t, Z_fosL(:, i), J(:, :, i), condition)*(deltaY(:, i) - ...
                         AOFforQt.c(t, Z_fosL(:, i), condition)*deltaTime);
-                    Mx = AOFforQt.mathExpectation(X, condition);
-                    Mz = AOFforQt.mathExpectation(Z_fosL, condition);
-                    Dx = AOFforQt.dispersion(X, Mx, condition);
-                    Dz = AOFforQt.dispersion(Z_fosL, Mz, condition);
-                    J(:, :, i) = Dx - Dz;
+
+                     J(:, :, i) = Dx - Dz;
                          
                 end
+                q(5) = toc;
+                plot(q)
                 % end of realization loop
 
                 % calculation of characteristics
@@ -379,14 +406,16 @@ classdef AOFforQt
                 Dx = AOFforQt.dispersion(X, Mx, condition);
                 Deps_aofL = AOFforQt.dispersion(X - Z_aofL, Meps_aofL, condition);
                 Deps_fosL = AOFforQt.dispersion(X - Z_fosL, Meps_aofL, condition);
+                Mz = AOFforQt.mathExpectation(Z_fosL, condition);
+                Dz = AOFforQt.dispersion(Z_fosL, Mz, condition);
                 
                 Sx = ones(NX, 1);
                 Seps_aofL = ones(NX, 1);
                 Crit_aofL = ones(NX, 1);
-                ICrit_aofL = ones(NX, 1);
+                %ICrit_aofL = ones(NX, 1);
                 Seps_fosL = ones(NX, 1);
                 Crit_fosL = ones(NX, 1);
-                ICrit_fosL = ones(NX, 1);
+                %ICrit_fosL = ones(NX, 1);
                 for i = 1:NX
                     Sx(i) = sqrt(Dx(i, i));
                     Seps_aofL(i) = sqrt(Deps_aofL(i, i));
@@ -447,29 +476,45 @@ classdef AOFforQt
                 end
             end
             
-            % plot Sx, Seps, Crit
-            figure('name', 'Sx; Seps; Crit');
+%             plot Sx, Seps, Crit
+            SxToPlot = zeros(1, NX);
+            SeAofLToPlot = zeros(1, NX);
+            SeFosLToPlot = zeros(1, NX);
+%             sqrtCrit_aofLToPlot = zeros(1, NX);
+%             sqrtCrit_fosLToPlot = zeros(1, NX);
+%             ICrit_aofLToPlot = zeros(1, NX);
+%             ICrit_fosLToPlot = zeros(1, NX);
+            tToPlot = zeros(1, NX);
+            
+            figure('name', 'Sx');
             for j = 1:NX
                 for i = 1:K
                     SxToPlot(i) = SxTable(j, 1, i);
                     SeAofLToPlot(i) = Seps_aofLTable(j, 1, i);
                     SeFosLToPlot(i) = Seps_fosLTable(j, 1, i);
-                    sqrtCrit_aofLToPlot(i) = sqrt(Crit_aofLTable(j, 1, i));
-                    sqrtCrit_fosLToPlot(i) = sqrt(Crit_fosLTable(j, 1, i));
+%                     sqrtCrit_aofLToPlot(i) = sqrt(Crit_aofLTable(j, 1, i));
+%                     sqrtCrit_fosLToPlot(i) = sqrt(Crit_fosLTable(j, 1, i));
+%                     ICrit_aofLToPlot(i) = ICrit_aofLTable(j, 1, i);
+%                     ICrit_fosLToPlot(i) = ICrit_fosLTable(j, 1, i);
                     tToPlot(i) = tTable(1, 1, i);
                 end                
 
-                subplot(1,2,j);
+                subplot(2,1,j);
                 plot(tToPlot.', SxToPlot.');
                 hold on;
-                plot(tToPlot.', SeAofLToPlot.', 'color', [240, 110, 50]/255);
+                plot(tToPlot.', SeAofLToPlot.', 'o-', 'color', [240, 110, 50]/255);
                 hold on;
-                plot(tToPlot.', sqrtCrit_aofLToPlot.', 'color', [0, 110, 50]/255);
-                hold on;
-                plot(tToPlot.', SeFosLToPlot.', 'k');
-                hold on;
-                plot(tToPlot.', sqrtCrit_fosLToPlot.', 'color', [200, 180, 10]/255);
-                legend(strcat('Sx', int2str(j)), strcat('SeAOF-L', int2str(j)), strcat('sqrtCrit-aofL', int2str(j)), strcat('SeFOS-L', int2str(j)), strcat('sqrtCrit-fosL', int2str(j)));
+%                 plot(tToPlot.', sqrtCrit_aofLToPlot.', 'x--', 'color', [0, 110, 50]/255);
+%                 hold on;
+                plot(tToPlot.', SeFosLToPlot.', 'kx--');
+%                 hold on;
+%                 plot(tToPlot.', sqrtCrit_fosLToPlot.', 'v-','color', [200, 180, 10]/255);
+                %legend(strcat('Sx', int2str(j)), strcat('SeAOF-L', int2str(j)), strcat('sqrtCrit-aofL', int2str(j)), strcat('SeFOS-L', int2str(j)), strcat('sqrtCrit-fosL', int2str(j)));
+                legend(strcat('Sx', int2str(j)), strcat('SeAOF-L', int2str(j)), strcat('SeFOS-L', int2str(j)));
+%                  plot(tToPlot.', ICrit_aofLToPlot.', 'x--', 'color', [240, 110, 50]/255);
+%                  hold on;
+%                  plot(tToPlot.', ICrit_fosLToPlot.', 'ko:');
+%                  legend(strcat('ICrit-aofL', int2str(j)), strcat('ICrit-fosL', int2str(j)));
             end     
            
             if(condition == 2)
