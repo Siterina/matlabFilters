@@ -1,4 +1,4 @@
-classdef AOFforQt
+classdef matlabFilters
     %UNTITLED3 Summary of this class goes here
     %   Detailed explanation goes here
     
@@ -10,7 +10,25 @@ classdef AOFforQt
         
         % Functions-coefficients of the system
         
+        function [ k ] = k(t) 
+            global kb;
+            global tStroke;
+            k = kb*sign(t - tStroke);
+        end
+        
         function [ a ] = a(t, x, condition)
+            if(condition == 3)
+                global c3;
+                global betaC3;
+                global g;
+                global R;
+                global kb;
+                global tStroke;
+                k = kb*sign(t - tStroke);
+                a(1, 1) = -c3*x(1)*x(1)*exp(-betaC3*x(3)) - g*sin(x(2));
+                a(2, 1) = c3*k*x(1)*exp(-betaC3*x(3)) + cos(x(2))*(x(1)/(R + x(3))- g/x(1));
+                a(3, 1) = x(1)*sin(x(2));
+            end          
             if(condition == 2)
                 global omega;
                 global alpha;
@@ -22,11 +40,20 @@ classdef AOFforQt
                 global a0;
                 global a1;
                 global a3;
-                a = a0 + a1 * x + a3 * x * x * x;
+                a = a0 + a1 * x + a3 * x * x * x; 
             end
         end
         
         function [ c ] = c(t, x, condition)
+            if(condition == 3)
+                global c3;
+                global betaC3;
+                global kb;
+                global tStroke;
+                k = kb*sign(t - tStroke);
+                c(1, 1) = c3*x(1)*x(1)*exp(-betaC3*x(3))*(cos(x(2)) - k*sin(x(2)));
+                c(2, 1) = c3*x(1)*x(1)*exp(-betaC3*x(3))*(sin(x(2)) + k*cos(x(2)));
+            end     
             if(condition == 2)
                 c(1, 1) = x(1);
                 c(2, 1) = x(2);
@@ -40,6 +67,9 @@ classdef AOFforQt
         
         function [ B ] = B(t, x, condition)
             global gamma;
+            if(condition == 3)
+                B = zeros(3, 2);
+            end            
             if(condition == 2)
                 B(1, 1) = 0;
                 B(1, 2) = 0;
@@ -55,6 +85,28 @@ classdef AOFforQt
         
         function [ D ] = D(t, x, condition)
             global gamma;
+            if(condition == 3)
+                global c3;
+                global betaC3;
+                global sigmaM;
+                global sigmaA;
+                global kb;
+                global tStroke;
+                k = kb*sign(t - tStroke);
+                D(1, 1) = sigmaA;
+                D(1, 2) = 0;
+                D(2, 1) = 0;
+                D(2, 2) = sigmaA;
+                
+%                 D(1, 1) = sigmaA;
+%                 D(1, 2) = 0;
+%                 D(1, 3) = c3*x(1)*x(1)*exp(-betaC3*x(3))*(cos(x(2)) - k*sin(x(2)))*sigmaM;
+%                 D(1, 4) = 0;
+%                 D(2, 1) = 0;
+%                 D(2, 2) = sigmaA;
+%                 D(2, 3) = 0;
+%                 D(2, 4) = c3*x(1)*x(1)*exp(-betaC3*x(3))*(sin(x(2)) + k*cos(x(2)))*sigmaM;
+            end
             if(condition == 2)
                 global d11;
                 global d22;
@@ -72,12 +124,12 @@ classdef AOFforQt
         end
         
         function [ R ] = R(t, x, condition)
-            D = AOFforQt.D(t, x, condition);
+            D = matlabFilters.D(t, x, condition);
             R = D * D.';
         end
         
         function [ Q ] = Q(t, x, condition)
-            B = AOFforQt.B(t, x, condition);
+            B = matlabFilters.B(t, x, condition);
             Q = B * B.';
         end
         
@@ -85,6 +137,24 @@ classdef AOFforQt
         % Support functions for Kalman filter
         
         function [ A ] = A(t, x, condition)                               % матрица Якоби первых производных a(t, x) по x
+            if(condition == 3)
+                global c3;
+                global betaC3;
+                global g;
+                global R;
+                global kb;
+                global tStroke;
+                k = kb*sign(t - tStroke);
+                A(1, 1) = -2*c3*x(1)*exp(-betaC3*x(3));
+                A(1, 2) = -g*cos(x(2));
+                A(1, 3) = c3*betaC3*x(1)*x(1)*exp(-betaC3*x(3));
+                A(2, 1) = c3*k*exp(-betaC3*x(3)) + cos(x(2))*(1/(R + x(3))+ g/(x(1)*x(1)));
+                A(2, 2) = -sin(x(2))*(x(1)/(R + x(3))- g/x(1));
+                A(2, 3) = -c3*betaC3*k*x(1)*exp(-betaC3*x(3)) - cos(x(2))*x(1)/((R + x(3))*(R+x(3)));
+                A(3, 1) = sin(x(2));
+                A(3, 2) = x(1)*cos(x(2));
+                A(3, 3) = 0;
+            end           
             if(condition == 2)
                 global omega;
                 global alpha;
@@ -103,7 +173,20 @@ classdef AOFforQt
         end
         
         function [ G ] = G(t, x, condition)                               % матрица Якоби первых производных с(t, x) по x
-           if(condition == 2)
+            if(condition == 3)
+                global c3;
+                global betaC3;
+                global kb;
+                global tStroke;
+                k = kb*sign(t - tStroke);
+                G(1, 1) = 2*c3*x(1)*exp(-betaC3*x(3))*(cos(x(2)) - k*sin(x(2)));
+                G(1, 2) = -c3*x(1)*x(1)*exp(-betaC3*x(3))*(sin(x(2)) + k*cos(x(2)));
+                G(1, 3) = -betaC3*c3*x(1)*x(1)*exp(-betaC3*x(3))*(cos(x(2)) - k*sin(x(2)));
+                G(2, 1) = 2*c3*x(1)*exp(-betaC3*x(3))*(sin(x(2)) + k*cos(x(2)));
+                G(2, 2) = c3*x(1)*x(1)*exp(-betaC3*x(3))*(cos(x(2)) - k*sin(x(2)));
+                G(2, 3) = -betaC3 * c3*x(1)*x(1)*exp(-betaC3*x(3))*(sin(x(2)) + k*cos(x(2)));
+            end
+            if(condition == 2)
                 G(1, 1) = 1;
                 G(1, 2) = 0;
                 G(2, 1) = 0;
@@ -120,13 +203,17 @@ classdef AOFforQt
         % structure functions
         
         function [ K ] = K(t, x, p, condition) 
-            K = p * AOFforQt.G(t, x, condition).' /(AOFforQt.R(t, x, condition));
+            K = p * matlabFilters.G(t, x, condition).' /(matlabFilters.R(t, x, condition));
+%             p
+%             matlabFilters.G(t, x, condition)
+%             matlabFilters.G(t, x, condition).'
+%             matlabFilters.R(t, x, condition)
         end
         
         function [ Ksi ] = Ksi(t, x, p, condition)                        
-            Ksi = AOFforQt.A(t, x, condition) * p + p * AOFforQt.A(t, x, condition).' + ...
-                AOFforQt.Q(t, x, condition) - AOFforQt.K(t, x, p, condition) * ... 
-                AOFforQt.R(t, x, condition) * AOFforQt.K(t, x, p, condition).';
+            Ksi = matlabFilters.A(t, x, condition) * p + p * matlabFilters.A(t, x, condition).' + ...
+                matlabFilters.Q(t, x, condition) - matlabFilters.K(t, x, p, condition) * ... 
+                matlabFilters.R(t, x, condition) * matlabFilters.K(t, x, p, condition).';
         end
         
         
@@ -159,7 +246,7 @@ classdef AOFforQt
                 end
                 D = D * 1/(N-1);
             end
-            if(condition == 2)
+            if(condition > 1)
                 D = zeros(condition, condition);
                 for i = 1:N
                     for j = 1:condition
@@ -207,8 +294,26 @@ classdef AOFforQt
             global SoX;
             global SoY;
             global SoZ;
-
             
+            
+            %3 condition
+            global c3;
+            global betaC3;
+            global g;
+            global R;
+            global tStroke;
+            global kb;
+            global MoXv;
+            global MoXteta;
+            global MoXh;
+            global SoXv;
+            global SoXteta;
+            global SoXh;
+            global sigmaM;
+            global sigmaA;
+            
+            
+%             %scalar
             a0 = 0;                                                        % a, g - параметры объекта
             a1 = -0.5;
             a3 = -1;
@@ -216,35 +321,67 @@ classdef AOFforQt
             alpha2 = 0.5;
             g0 = 1.5;
             g1 = 0;
-            beta1 = 0.5;
+            beta1 = 1;
             beta2 = 0.1;
-            
+
+            % easy scalar
+%             a0 = 0;                                                        % a, g - параметры объекта
+%             a1 = 0;
+%             a3 = -1;
+%             alpha1 = 1;                                                    % alpha, beta - параметры измерителя
+%             alpha2 = 0;
+%             g0 = 0;
+%             g1 = 1;
+%             beta1 = 1;
+%             beta2 = 0;            
+
+
+
+
             omega = 0.1*pi;
             alpha = 2;
             beta = 1;
             d11 = 0.1;
             d22 = 0.1;
-            DoX = 0.3;
+            DoX = 0.2;
             gamma = 1;
             
-            N = 800;
-            K = 20;
-            deltaTime = 0.003;
-            
+            % scalar
             MoX = 0.1;                                                     % Характеристики нач. усл. объекта, измерителя и фильтра
             MoY = 0.0;
             SoX = 0.6;
             SoY = 0.0;
             SoZ = 0.0; 
+
+            % easy scalar
+%             MoX = 0.1;                                                     % Характеристики нач. усл. объекта, измерителя и фильтра
+%             MoY = 0.0;
+%             SoX = 0.707;
+%             SoY = 0.0;
+%             SoZ = 0.0; 
+            
+            %cond 3 - kilometers
+            c3 = 0.0043333333;
+            betaC3 = 0.00009;
+            g = 3.72;
+            R = 3400000;
+            tStroke = 45;
+            kb = 0.3;
+            MoXv = 6000;
+            MoXteta = -18*pi/180;
+            MoXh = 100000;
+            SoXv = 15;
+            SoXteta = 1*pi/180;
+            SoXh = 7000;
+            sigmaM = 0.01;
+            sigmaA = 0.00002;
+           
         end
         
         
-        function[ ] = main(condition)
+        function[ ] = main(condition, N1, K1, deltaTime1)
             
             % Initial conditions
-            global deltaTime;
-            global N;
-            global K;
             global MoX;
             global MoY;
             global SoX;
@@ -252,15 +389,35 @@ classdef AOFforQt
             global SoZ;
             
             global DoX;
+            
+            global MoXv;
+            global MoXteta;
+            global MoXh;
+            global SoXv;
+            global SoXteta;
+            global SoXh;
+            global N;
+            global K;
+            global deltaTime;
+            N = N1;
+            K = ceil(K1 / deltaTime1);
+            deltaTime = deltaTime1;
 
-            AOFforQt.initialConditions();
+            matlabFilters.initialConditions();
+            if(condition == 3)
+                NX = 3;
+                NY = 2;
+                NW = 2;
+            end
             if(condition == 2)
                 NX = 2;
                 NY = 2;
+                NW = 2;
             end
-           if(condition ==1)
+           if(condition == 1)
                 NX = 1;
                 NY = 1;
+                NW = 1;
            end            
                         
             % arrays for final table            
@@ -278,11 +435,11 @@ classdef AOFforQt
             
             t = deltaTime;
             X = ones(NX, N);
-            deltaY = ones(NX, N);
+            deltaY = ones(NY, N);
             Z_aofL = ones(NX, N);
             Z_fosL = ones(NX, N);
-            P = ones(NX, NY, N);
-            J = ones(NX, NY, N);
+            P = ones(NX, NX, N);
+            J = ones(NX, NX, N);
                       
             
 %             t = zeros(1,100);
@@ -297,6 +454,19 @@ classdef AOFforQt
 
             
             rng(10);
+            if(condition == 3)
+                 for i = 1:N;
+                    P(:, :, i) = [SoXv*SoXv, 0, 0; 0, SoXteta*SoXteta, 0; 0, 0, SoXh*SoXh];
+                    J(:, :, i) = [SoXv*SoXv, 0, 0; 0, SoXteta*SoXteta, 0; 0, 0, SoXh*SoXh];
+                    Z_aofL(:, i) = [MoXv, MoXteta, MoXh];
+                    Z_fosL(:, i) = Z_aofL(:, i);
+
+                    X(1, i) = normrnd(MoXv, SoXv);
+                    X(2, i) = normrnd(MoXteta, SoXteta);
+                    X(3, i) = normrnd(MoXh, SoXh);
+                 end
+            end
+            
             if(condition == 2)
                  for i = 1:N;
                     P(:, :, i) = [DoX, 0; 0, DoX];
@@ -319,14 +489,14 @@ classdef AOFforQt
             end
             
             % step #0
-            Mx = AOFforQt.mathExpectation(X, condition);
-            Meps_aofL = AOFforQt.mathExpectation(X - Z_aofL, condition);
-            Meps_fosL = AOFforQt.mathExpectation(X - Z_fosL, condition);
-            Dx = AOFforQt.dispersion(X, Mx, condition);
-            Deps_aofL = AOFforQt.dispersion(X - Z_aofL, Meps_aofL, condition);
-            Deps_fosL = AOFforQt.dispersion(X - Z_fosL, Meps_aofL, condition);
-            Mz = AOFforQt.mathExpectation(Z_fosL, condition);
-            Dz = AOFforQt.dispersion(Z_fosL, Mz, condition);
+            Mx = matlabFilters.mathExpectation(X, condition);
+            Meps_aofL = matlabFilters.mathExpectation(X - Z_aofL, condition);
+            Meps_fosL = matlabFilters.mathExpectation(X - Z_fosL, condition);
+            Dx = matlabFilters.dispersion(X, Mx, condition);
+            Deps_aofL = matlabFilters.dispersion(X - Z_aofL, Meps_aofL, condition);
+            Deps_fosL = matlabFilters.dispersion(X - Z_fosL, Meps_aofL, condition);
+            Mz = matlabFilters.mathExpectation(Z_fosL, condition);
+            Dz = matlabFilters.dispersion(Z_fosL, Mz, condition);
             
 
             Sx = ones(NX, 1);
@@ -361,15 +531,24 @@ classdef AOFforQt
             sDeltaTime = sqrt(deltaTime);
              
             
-            stepForTrajectory = 400; %from N
+            stepForTrajectory = 4; %from N
             XForTrajectoryPlot(:, 1) = X(:, stepForTrajectory);
+            
+            %progress bar
+            
+            progressBarCurrent = 0;
+            progressBarStep = 1 / K;
+            progressBarFunction = waitbar(progressBarCurrent, 'Выполняется фильтрация...');
+            
             
             % time loop
             for k = 2:K                
                 % realization loop
                 
+                progressBarCurrent = progressBarCurrent + progressBarStep;
+                waitbar(progressBarCurrent, progressBarFunction, 'Выполняется фильтрация...');
                 
-                deltaV = normrnd(0, sDeltaTime, NX, 2, N);
+                deltaV = normrnd(0, sDeltaTime, NW, 2, N);
                 q = zeros(1,N);
                 tic;
                 for i = 1:N
@@ -377,37 +556,37 @@ classdef AOFforQt
 %                     deltaV1 = normrnd(0, sDeltaTime, NX, 1);
 %                     deltaV2 = normrnd(0, sDeltaTime, NX, 1); 
                         
-                    X(:, i) = X(:, i) + AOFforQt.a(t, X(:, i), condition)*deltaTime + ...
-                        AOFforQt.B(t, X(:, i), condition)*deltaV(:, 1, i);
+                    X(:, i) = X(:, i) + matlabFilters.a(t, X(:, i), condition)*deltaTime + ...
+                        matlabFilters.B(t, X(:, i), condition)*deltaV(:, 1, i);
 
-                    deltaY(:, i) = AOFforQt.c(t, X(:, i), condition)*deltaTime + ...
-                        AOFforQt.D(t, X(:, i), condition)*deltaV(:, 2, i);                             
+                    deltaY(:, i) = matlabFilters.c(t, X(:, i), condition)*deltaTime + ...
+                        matlabFilters.D(t, X(:, i), condition)*deltaV(:, 2, i);                             
    
-                    Z_aofL(:, i) = Z_aofL(:, i) + AOFforQt.a(t, Z_aofL(:, i), condition)*deltaTime + ...
-                        AOFforQt.K(t, Z_aofL(:, i), P(:, :, i), condition)*(deltaY(:, i) - ...
-                        AOFforQt.c(t, Z_aofL(:, i), condition)*deltaTime);
-                    P(:, :, i) = P(:, :, i) +  AOFforQt.Ksi(t, Z_aofL(:, i), P(:, :, i), condition)*deltaTime;
+                    Z_aofL(:, i) = Z_aofL(:, i) + matlabFilters.a(t, Z_aofL(:, i), condition)*deltaTime + ...
+                        matlabFilters.K(t, Z_aofL(:, i), P(:, :, i), condition)*(deltaY(:, i) - ...
+                        matlabFilters.c(t, Z_aofL(:, i), condition)*deltaTime);
+                    P(:, :, i) = P(:, :, i) +  matlabFilters.Ksi(t, Z_aofL(:, i), P(:, :, i), condition)*deltaTime;
                     
-                    Z_fosL(:, i) = Z_fosL(:, i) + AOFforQt.a(t, Z_fosL(:, i), condition)*deltaTime + ...
-                        AOFforQt.K(t, Z_fosL(:, i), J(:, :, i), condition)*(deltaY(:, i) - ...
-                        AOFforQt.c(t, Z_fosL(:, i), condition)*deltaTime);
+                    Z_fosL(:, i) = Z_fosL(:, i) + matlabFilters.a(t, Z_fosL(:, i), condition)*deltaTime + ...
+                        matlabFilters.K(t, Z_fosL(:, i), J(:, :, i), condition)*(deltaY(:, i) - ...
+                        matlabFilters.c(t, Z_fosL(:, i), condition)*deltaTime);
 
                      J(:, :, i) = Dx - Dz;
                          
                 end
                 q(5) = toc;
-                plot(q)
+                
                 % end of realization loop
 
                 % calculation of characteristics
-                Mx = AOFforQt.mathExpectation(X, condition);
-                Meps_aofL = AOFforQt.mathExpectation(X - Z_aofL, condition);
-                Meps_fosL = AOFforQt.mathExpectation(X - Z_fosL, condition);
-                Dx = AOFforQt.dispersion(X, Mx, condition);
-                Deps_aofL = AOFforQt.dispersion(X - Z_aofL, Meps_aofL, condition);
-                Deps_fosL = AOFforQt.dispersion(X - Z_fosL, Meps_aofL, condition);
-                Mz = AOFforQt.mathExpectation(Z_fosL, condition);
-                Dz = AOFforQt.dispersion(Z_fosL, Mz, condition);
+                Mx = matlabFilters.mathExpectation(X, condition);
+                Meps_aofL = matlabFilters.mathExpectation(X - Z_aofL, condition);
+                Meps_fosL = matlabFilters.mathExpectation(X - Z_fosL, condition);
+                Dx = matlabFilters.dispersion(X, Mx, condition);
+                Deps_aofL = matlabFilters.dispersion(X - Z_aofL, Meps_aofL, condition);
+                Deps_fosL = matlabFilters.dispersion(X - Z_fosL, Meps_aofL, condition);
+                Mz = matlabFilters.mathExpectation(Z_fosL, condition);
+                Dz = matlabFilters.dispersion(Z_fosL, Mz, condition);
                 
                 Sx = ones(NX, 1);
                 Seps_aofL = ones(NX, 1);
@@ -444,6 +623,8 @@ classdef AOFforQt
                 
             end
             % end of time loop
+            
+            delete(progressBarFunction);
 
             % displaying the table
             if(condition == 1)
@@ -497,9 +678,20 @@ classdef AOFforQt
 %                     ICrit_aofLToPlot(i) = ICrit_aofLTable(j, 1, i);
 %                     ICrit_fosLToPlot(i) = ICrit_fosLTable(j, 1, i);
                     tToPlot(i) = tTable(1, 1, i);
-                end                
+                end               
+                if(condition == 3) 
+                    if(j == 2)
+                        SxToPlot = SxToPlot*180/pi;
+                        SeAofLToPlot = SeAofLToPlot*180/pi;
+                        SeFosLToPlot = SeFosLToPlot*180/pi;
+                    else
+                        SxToPlot = SxToPlot;
+                        SeAofLToPlot = SeAofLToPlot;
+                        SeFosLToPlot = SeFosLToPlot;
+                    end
+                end
 
-                subplot(2,1,j);
+                subplot(condition,1,j);
                 plot(tToPlot.', SxToPlot.');
                 hold on;
                 plot(tToPlot.', SeAofLToPlot.', 'o-', 'color', [240, 110, 50]/255);
@@ -517,22 +709,23 @@ classdef AOFforQt
 %                  legend(strcat('ICrit-aofL', int2str(j)), strcat('ICrit-fosL', int2str(j)));
             end     
            
-            if(condition == 2)
-               % plot trajectory 
-               figure('name', 'trajectory; X(t)');
-               subplot(2,2,1);
-               plot(XForTrajectoryPlot(1, :).', XForTrajectoryPlot(2, :).');
-               xlabel('X1'); 
-               ylabel('X2');
-               subplot(2,2,3);
-               plot(tToPlot.'.', XForTrajectoryPlot(1, :).');
-               xlabel('t'); 
-               ylabel('X1');
-               subplot(2,2,4);
-               plot(tToPlot.'.', XForTrajectoryPlot(2, :).');
-               xlabel('t'); 
-               ylabel('X2');
-            end
+%             if(condition == 2)
+%                % plot trajectory 
+%                figure('name', 'trajectory; X(t)');
+%                subplot(2,2,1);
+%                plot(XForTrajectoryPlot(1, :).', XForTrajectoryPlot(2, :).');
+%                xlabel('X1'); 
+%                ylabel('X2');
+%                subplot(2,2,3);
+%                plot(tToPlot.'.', XForTrajectoryPlot(1, :).');
+%                xlabel('t'); 
+%                ylabel('X1');
+%                subplot(2,2,4);
+%                plot(tToPlot.'.', XForTrajectoryPlot(2, :).');
+%                xlabel('t'); 
+%                ylabel('X2');
+%             end
+
                
         end        
         % end of Kalman filter function
