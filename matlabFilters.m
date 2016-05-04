@@ -379,7 +379,7 @@ classdef matlabFilters
         end
         
         
-        function[ ] = main(condition, N1, K1, deltaTime1)
+        function[ ] = main(condition, N1, K1, deltaTime1, buildTrajectory, trajectoryNumber, buildLAOF, buildLFOS, buildMx)
             
             % Initial conditions
             global MoX;
@@ -531,8 +531,10 @@ classdef matlabFilters
             sDeltaTime = sqrt(deltaTime);
              
             
-            stepForTrajectory = 4; %from N
+            stepForTrajectory = trajectoryNumber; %from N
             XForTrajectoryPlot(:, 1) = X(:, stepForTrajectory);
+            Z_aofLForTrajectoryPlot(:, 1) = Z_aofL(:, stepForTrajectory);
+            Z_fosLForTrajectoryPlot(:, 1) = Z_fosL(:, stepForTrajectory);
             
             %progress bar
             
@@ -619,8 +621,9 @@ classdef matlabFilters
                 
                 t = (k) * deltaTime;
                 
-                XForTrajectoryPlot(:, k) = X(:, stepForTrajectory);                   
-                
+                XForTrajectoryPlot(:, k) = X(:, stepForTrajectory); 
+                Z_aofLForTrajectoryPlot(:, k) = Z_aofL(:, stepForTrajectory); 
+                Z_fosLForTrajectoryPlot(:, k) = Z_fosL(:, stepForTrajectory);                 
             end
             % end of time loop
             
@@ -665,9 +668,12 @@ classdef matlabFilters
 %             sqrtCrit_fosLToPlot = zeros(1, NX);
 %             ICrit_aofLToPlot = zeros(1, NX);
 %             ICrit_fosLToPlot = zeros(1, NX);
+            MxToPlot = zeros(1, NX);
+            MeAofLToPlot = zeros(1, NX);
+            MeFosLToPlot = zeros(1, NX);
             tToPlot = zeros(1, NX);
             
-            figure('name', 'Sx');
+            figure('name', 'Sx, Se');
             for j = 1:NX
                 for i = 1:K
                     SxToPlot(i) = SxTable(j, 1, i);
@@ -677,6 +683,7 @@ classdef matlabFilters
 %                     sqrtCrit_fosLToPlot(i) = sqrt(Crit_fosLTable(j, 1, i));
 %                     ICrit_aofLToPlot(i) = ICrit_aofLTable(j, 1, i);
 %                     ICrit_fosLToPlot(i) = ICrit_fosLTable(j, 1, i);
+
                     tToPlot(i) = tTable(1, 1, i);
                 end               
                 if(condition == 3) 
@@ -694,39 +701,144 @@ classdef matlabFilters
                 subplot(condition,1,j);
                 plot(tToPlot.', SxToPlot.');
                 hold on;
-                plot(tToPlot.', SeAofLToPlot.', 'o-', 'color', [240, 110, 50]/255);
-                hold on;
-%                 plot(tToPlot.', sqrtCrit_aofLToPlot.', 'x--', 'color', [0, 110, 50]/255);
-%                 hold on;
-                plot(tToPlot.', SeFosLToPlot.', 'kx--');
-%                 hold on;
-%                 plot(tToPlot.', sqrtCrit_fosLToPlot.', 'v-','color', [200, 180, 10]/255);
-                %legend(strcat('Sx', int2str(j)), strcat('SeAOF-L', int2str(j)), strcat('sqrtCrit-aofL', int2str(j)), strcat('SeFOS-L', int2str(j)), strcat('sqrtCrit-fosL', int2str(j)));
-                legend(strcat('Sx', int2str(j)), strcat('SeAOF-L', int2str(j)), strcat('SeFOS-L', int2str(j)));
-%                  plot(tToPlot.', ICrit_aofLToPlot.', 'x--', 'color', [240, 110, 50]/255);
-%                  hold on;
-%                  plot(tToPlot.', ICrit_fosLToPlot.', 'ko:');
-%                  legend(strcat('ICrit-aofL', int2str(j)), strcat('ICrit-fosL', int2str(j)));
+                if(buildLAOF)
+                    plot(tToPlot.', SeAofLToPlot.', 'o-', 'color', [240, 110, 50]/255);
+                    hold on;
+                end
+
+                if(buildLFOS)
+                    plot(tToPlot.', SeFosLToPlot.', 'kx--');
+                end
+                
+                % legend format
+                if(buildLAOF && buildLFOS)
+                    legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' AOF-L'), strcat('Se', int2str(j), ' FOS-L'));
+                end
+                if(buildLAOF && ~buildLFOS)
+                    legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' AOF-L'));
+                end
+                if(~buildLAOF && buildLFOS)
+                    legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' FOS-L'));
+                end
+                if(~buildLAOF && ~buildLFOS)
+                    legend(strcat('Sx', int2str(j)));
+                end
+
+                if(condition == 1)
+                    str = 'Скалярный пример: ';
+                end
+                if(condition == 2)
+                    str = 'Осциллятор Ван-дер-Поля: ';
+                end
+                if(condition == 3)
+                    str = 'Спуск ЛА на планету: ';
+                end
+                title(strcat(str, ' N=', int2str(N), ', deltaTime=', num2str(deltaTime), '. '));
+                xlabel('t'); 
             end     
            
-%             if(condition == 2)
-%                % plot trajectory 
-%                figure('name', 'trajectory; X(t)');
-%                subplot(2,2,1);
-%                plot(XForTrajectoryPlot(1, :).', XForTrajectoryPlot(2, :).');
-%                xlabel('X1'); 
-%                ylabel('X2');
-%                subplot(2,2,3);
-%                plot(tToPlot.'.', XForTrajectoryPlot(1, :).');
-%                xlabel('t'); 
-%                ylabel('X1');
-%                subplot(2,2,4);
-%                plot(tToPlot.'.', XForTrajectoryPlot(2, :).');
-%                xlabel('t'); 
-%                ylabel('X2');
-%             end
+            % plot trajectory 
+            if(buildTrajectory)
+                if(buildLAOF)
+                    figure('name', 'trajectory: X(t), Z(t) AOF-L and confidence interval');
+                    for j = 1:NX
+                        subplot(NX,1,j);
+                        plot(tToPlot.'.', XForTrajectoryPlot(j, :).');
+                        hold on;
+                        plot(tToPlot.'.', Z_aofLForTrajectoryPlot(j, :).', 'o-', 'color', [240, 110, 50]/255);
+                        hold on;
+                        xlabel('t');
 
-               
+                        plot(tToPlot.'.', XForTrajectoryPlot(j, :).' + 3*SeAofLToPlot.', '--', 'color', [150, 150, 150]/255);
+                        hold on;
+                        plot(tToPlot.'.', XForTrajectoryPlot(j, :).' - 3*SeAofLToPlot.', '--', 'color', [150, 150, 150]/255);
+                        hold on;
+
+                        legend(strcat('X', int2str(j)), strcat('Z', int2str(j), ' AOF-L'), 'X + 3Se AOF-L', 'X - 3Se AOF-L');
+                        title(strcat('Траектория j= ', int2str(stepForTrajectory), ' из ', int2str(N)));
+                    end
+                end
+                
+                if(buildLFOS)
+                    figure('name', 'trajectory: X(t), Z(t) FOS-L and confidence interval');
+                    for j = 1:NX             
+                        subplot(NX,1,j);
+                        plot(tToPlot.'.', XForTrajectoryPlot(j, :).');
+                        hold on;
+                        plot(tToPlot.'.', Z_fosLForTrajectoryPlot(j, :).', 'kx--');
+                        xlabel('t');
+                        hold on;
+
+                        plot(tToPlot.'.', XForTrajectoryPlot(j, :).' + 3*SeFosLToPlot.', '--', 'color', [150, 150, 150]/255);
+                        hold on;
+                        plot(tToPlot.'.', XForTrajectoryPlot(j, :).' - 3*SeFosLToPlot.', '--', 'color', [150, 150, 150]/255);
+                        hold on;
+
+                        legend(strcat('X', int2str(j)), strcat('Z', int2str(j), ' AOF-L'), 'X + 3Se FOS-L', 'X - 3Se FOS-L');
+                        title(strcat('Траектория j= ', int2str(stepForTrajectory), ' из ', int2str(N)));
+                    end
+                end
+            end
+            
+            %build Mx
+            if(buildMx)
+                figure('name', 'Mx, Me');
+                
+                maxMx = zeros(1, NX);
+                maxMeAOFL = zeros(1, NX);
+                maxMeFOSL = zeros(1, NX);
+                for jj = 1:NX
+                    for ii = 1:K
+                        if(maxMx(1, jj) < abs(MxTable(jj, 1, ii)))
+                            maxMx(1, jj) = abs(MxTable(jj, 1, ii));
+                        end
+                        if(maxMeAOFL(1, jj) < abs(Meps_aofLTable(jj, 1, ii)))
+                            maxMeAOFL(1, jj) = abs(Meps_aofLTable(jj, 1, ii));
+                        end
+                        if(maxMeFOSL(1, jj) < abs(Meps_fosLTable(jj, 1, ii)))
+                            maxMeFOSL(1, jj) = abs(Meps_fosLTable(jj, 1, ii));
+                        end
+                    end
+                end
+                
+                for j = 1:NX
+                    for i = 1:K
+                        MxToPlot(i) = MxTable(j, 1, i);
+                        MeAofLToPlot(i) = Meps_aofLTable(j, 1, i);
+                        MeFosLToPlot(i) = Meps_fosLTable(j, 1, i);
+                    end  
+                    subplot(NX,1,j);
+                    plot(tToPlot.', MxToPlot.');
+                    hold on;
+                    if(buildLAOF)
+                        plot(tToPlot.', MeAofLToPlot.', 'o-', 'color', [240, 110, 50]/255);
+                        hold on;
+                    end
+
+                    if(buildLFOS)
+                        plot(tToPlot.', MeFosLToPlot.', 'kx--');
+                    end
+
+                    % legend format
+                    if(buildLAOF && buildLFOS)
+                        legend(strcat('Mx', int2str(j)), strcat('Me', int2str(j), ' AOF-L'), strcat('Me', int2str(j), ' FOS-L'));
+                    end
+                    if(buildLAOF && ~buildLFOS)
+                        legend(strcat('Mx', int2str(j)), strcat('Me', int2str(j), ' AOF-L'));
+                    end
+                    if(~buildLAOF && buildLFOS)
+                        legend(strcat('Mx', int2str(j)), strcat('Me', int2str(j), ' FOS-L'));
+                    end
+                    if(~buildLAOF && ~buildLFOS)
+                        legend(strcat('Mx', int2str(j)));
+                    end
+                    
+                    title(strcat('max|Mx|=', num2str(maxMx(1, j)), '; max|Me AOF-L|=', num2str(maxMeAOFL(1, j)), '; max|Me FOS-L|=', num2str(maxMeFOSL(1, j))));
+                end
+            end
+            
+
+     
         end        
         % end of Kalman filter function
         

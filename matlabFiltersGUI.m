@@ -22,7 +22,7 @@ function varargout = matlabFiltersGUI(varargin)
 
 % Edit the above text to modify the response to help matlabFiltersGUI
 
-% Last Modified by GUIDE v2.5 28-Apr-2016 14:40:22
+% Last Modified by GUIDE v2.5 05-May-2016 00:20:22
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -79,6 +79,11 @@ function buttonFilter_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 condition = 1;
+buildTrajectory = false;
+buildLAOF = true;
+buildLFOS = true;
+buildMx = false;
+
 if (get(handles.radioButtonCondition1,'Value') == 1)
     condition = 1;
 end
@@ -88,10 +93,25 @@ end
 if (get(handles.radioButtonCondition3,'Value') == 1)
     condition = 3;
 end
+if(get(handles.checkBoxTrajectory, 'Value') == 1)
+    buildTrajectory = true;
+end
+if(get(handles.checkBoxLAOF, 'Value') == 0)
+    buildLAOF = false;
+end
+if(get(handles.checkBoxLFOS, 'Value') == 0)
+    buildLFOS = false;
+end
+if(get(handles.checkBoxMx, 'Value') == 1)
+    buildMx = true;
+end
+
 N = str2double(get(handles.editN, 'String'));
 K = str2double(get(handles.editK, 'String'));
 deltaTime = str2double(get(handles.editDeltaTime, 'String'));
-matlabFilters.main(condition, N, K, deltaTime);
+trajectoryNumber = str2double(get(handles.editTrajectoryNumber, 'String'));
+
+matlabFilters.main(condition, N, K, deltaTime, buildTrajectory, trajectoryNumber, buildLAOF, buildLFOS, buildMx);
 
 
 
@@ -161,3 +181,80 @@ function editK_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on button press in checkBoxTrajectory.
+function checkBoxTrajectory_Callback(hObject, eventdata, handles)
+% hObject    handle to checkBoxTrajectory (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkBoxTrajectory
+
+
+
+function editTrajectoryNumber_Callback(hObject, eventdata, handles)
+% hObject    handle to editTrajectoryNumber (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editTrajectoryNumber as text
+%        str2double(get(hObject,'String')) returns contents of editTrajectoryNumber as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function editTrajectoryNumber_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editTrajectoryNumber (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on button press in checkBoxLAOF.
+function checkBoxLAOF_Callback(hObject, eventdata, handles)
+% hObject    handle to checkBoxLAOF (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkBoxLAOF
+
+
+% --- Executes on button press in checkBoxLFOS.
+function checkBoxLFOS_Callback(hObject, eventdata, handles)
+% hObject    handle to checkBoxLFOS (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkBoxLFOS
+
+
+% --- Executes on button press in checkBoxGAOF.
+function checkBoxGAOF_Callback(hObject, eventdata, handles)
+% hObject    handle to checkBoxGAOF (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkBoxGAOF
+
+
+% --- Executes on button press in checkBoxGFOS.
+function checkBoxGFOS_Callback(hObject, eventdata, handles)
+% hObject    handle to checkBoxGFOS (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkBoxGFOS
+
+
+% --- Executes on button press in checkBoxMx.
+function checkBoxMx_Callback(hObject, eventdata, handles)
+% hObject    handle to checkBoxMx (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkBoxMx
