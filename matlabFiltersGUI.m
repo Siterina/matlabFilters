@@ -58,7 +58,8 @@ handles.output = hObject;
 % Update handles structure
 guidata(hObject, handles);
 
-matlabFilters.initialConditions(0, -0.5, -1, 1.5, 0, 1, 0.5, 1, 0.1, 0.5, 0.6);
+matlabFilters.initialConditions(0, -0.5, -1, 1.5, 0, 1, 0.5, 1, 0.1, 0.5, 0.6, ...
+                                0.1*3.1415, 2, 1, 0.1, 0.1, 0.45, 10, -3, 1);
 
 % UIWAIT makes matlabFiltersGUI wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -278,6 +279,9 @@ if (get(handles.radioButtonCondition3,'Value') == 1)
 end
 if(condition == 1)
     matlabFiltersExtraOptionsCondition1;
+end
+if(condition == 2)
+    matlabFiltersExtraOptionsCondition2;
 end
 
 

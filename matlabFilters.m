@@ -266,7 +266,8 @@ classdef matlabFilters
         
         
         
-        function [ ] = initialConditions(a0cond1G, a1cond1G, a3cond1G, b0cond1G, b1cond1G, c1cond1G, c2cond1G, d0cond1G, d1cond1G, MoXcond1G, SoXcond1G)
+        function [ ] = initialConditions(a0cond1G, a1cond1G, a3cond1G, b0cond1G, b1cond1G, c1cond1G, c2cond1G, d0cond1G, d1cond1G, MoXcond1G, SoXcond1G, ...
+                                        omegacond2G, alphacond2G, betacond2G, d11cond2G, d22cond2G, SoXcond2G, MoXcond2G, MoYcond2G, gammaG)
                         
             global deltaTime;
             global N;
@@ -352,15 +353,15 @@ classdef matlabFilters
 %             SoZcond1 = 0.0; 
 
             %2 condition
-            omegacond2 = 0.1*pi;
-            alphacond2 = 2;
-            betacond2 = 1;
-            d11cond2 = 0.1;
-            d22cond2 = 0.1;
-            SoXcond2 = 0.45;
-            MoXcond2 = 10;
-            MoYcond2 = -3;
-            gamma = 1;
+            omegacond2 = omegacond2G;
+            alphacond2 = alphacond2G;
+            betacond2 = betacond2G;
+            d11cond2 = d11cond2G;
+            d22cond2 = d22cond2G;
+            SoXcond2 = SoXcond2G;
+            MoXcond2 = MoXcond2G;
+            MoYcond2 = MoYcond2G;
+            gamma = gammaG;
              
             
             %cond 3 - kilometers
