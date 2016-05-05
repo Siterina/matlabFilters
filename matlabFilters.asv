@@ -266,7 +266,7 @@ classdef matlabFilters
         
         
         
-        function [ ] = initialConditions(a0cond1G, a1cond1G, a3cond1G, b0cond1G, b1cond1G, c1cond1G, c2cond1G, d0cond1G, d1cond1G, MoXcond1G, SoXcond1G)
+        function [ ] = initialConditions(a0cond1G, a1cond1G, a3cond1G, c1cond1G, c2cond1G, b0cond1G, b1cond1G, d0cond1, d1cond1, MoXcond1, MoYcond1, SoXcond1, SoYcond1, SoZcond1)
                         
             global deltaTime;
             global N;
@@ -318,19 +318,19 @@ classdef matlabFilters
             
             
             %1 condition
-            a0cond1 = a0cond1G;                                                        % a, g - параметры объекта
-            a1cond1 = a1cond1G;
-            a3cond1 = a3cond1G;
-            c1cond1 = c1cond1G;                                                    % alpha, beta - параметры измерителя
-            c2cond1 = c2cond1G;
-            b0cond1 = b0cond1G;
-            b1cond1 = b1cond1G;
-            d0cond1 = d0cond1G;
-            d1cond1 = d1cond1G;
+            a0cond1 = 0;                                                        % a, g - параметры объекта
+            a1cond1 = -0.5;
+            a3cond1 = -1;
+            c1cond1 = 1;                                                    % alpha, beta - параметры измерителя
+            c2cond1 = 0.5;
+            b0cond1 = 1.5;
+            b1cond1 = 0;
+            d0cond1 = 1;
+            d1cond1 = 0.1;
                         
-            MoXcond1 = MoXcond1G;                                                     % Характеристики нач. усл. объекта, измерителя и фильтра
+            MoXcond1 = 0.1;                                                     % Характеристики нач. усл. объекта, измерителя и фильтра
             MoYcond1 = 0.0;
-            SoXcond1 = SoXcond1G;
+            SoXcond1 = 0.6;
             SoYcond1 = 0.0;
             SoZcond1 = 0.0;
 

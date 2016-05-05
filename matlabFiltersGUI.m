@@ -22,7 +22,7 @@ function varargout = matlabFiltersGUI(varargin)
 
 % Edit the above text to modify the response to help matlabFiltersGUI
 
-% Last Modified by GUIDE v2.5 05-May-2016 00:20:22
+% Last Modified by GUIDE v2.5 05-May-2016 18:50:48
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -57,6 +57,8 @@ handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
+
+matlabFilters.initialConditions(0, -0.5, -1, 1.5, 0, 1, 0.5, 1, 0.1, 0.5, 0.6);
 
 % UIWAIT makes matlabFiltersGUI wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -110,7 +112,6 @@ N = str2double(get(handles.editN, 'String'));
 K = str2double(get(handles.editK, 'String'));
 deltaTime = str2double(get(handles.editDeltaTime, 'String'));
 trajectoryNumber = str2double(get(handles.editTrajectoryNumber, 'String'));
-
 matlabFilters.main(condition, N, K, deltaTime, buildTrajectory, trajectoryNumber, buildLAOF, buildLFOS, buildMx);
 
 
@@ -258,3 +259,31 @@ function checkBoxMx_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkBoxMx
+
+
+% --- Executes on button press in pushButtonExtraOptions.
+function pushButtonExtraOptions_Callback(hObject, eventdata, handles)
+% hObject    handle to pushButtonExtraOptions (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+condition = 1;
+if (get(handles.radioButtonCondition1,'Value') == 1)
+    condition = 1;
+end
+if (get(handles.radioButtonCondition2,'Value') == 1)
+    condition = 2;
+end
+if (get(handles.radioButtonCondition3,'Value') == 1)
+    condition = 3;
+end
+if(condition == 1)
+    matlabFiltersExtraOptionsCondition1;
+end
+
+
+% --- Executes on button press in pushButtonExit.
+function pushButtonExit_Callback(hObject, eventdata, handles)
+% hObject    handle to pushButtonExit (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+close(handles.figure1);
