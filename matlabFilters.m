@@ -366,7 +366,7 @@ classdef matlabFilters
             gamma = gammaG;
              
             
-            %cond 3 - kilometers
+            %cond 3 - meters
             c3 = 0.0043333333;
             betaC3 = 0.00009;
             g = 3.72;
@@ -379,8 +379,8 @@ classdef matlabFilters
             SoXv = 15;
             SoXteta = 1*pi/180;
             SoXh = 7000;
-            sigmaM = 0.01;
-            sigmaA = 0.00002;
+            sigmaM = 0;
+            sigmaA = 200;
            
         end
         
