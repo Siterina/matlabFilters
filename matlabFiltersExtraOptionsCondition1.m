@@ -60,7 +60,8 @@ guidata(hObject, handles);
 
 axes(handles.axes1);
 I = imread('condition1_equation.png');
-imshow(I, [0, 2]);
+imshow(I);
+truesize(handles.figure1);
 
 
 % UIWAIT makes matlabFiltersExtraOptionsCondition1 wait for user response (see UIRESUME)
@@ -100,7 +101,7 @@ MoXcond1 = str2double(get(handles.editMoX, 'String'));
 SoXcond1 = str2double(get(handles.editSoX, 'String'));
 
 matlabFilters.initialConditions(a0cond1, a1cond1, a3cond1, b0cond1, b1cond1, c1cond1, c2cond1, d0cond1, d1cond1, MoXcond1, SoXcond1, ...
-                                0.1*3.1415, 2, 1, 0.1, 0.1, 0.45, 10, -3, 1);
+                                0.1*3.1415, 2, 1, 0.1, 0.1, 0.45, 0.45, 10, -3, 1);
 
 close(handles.figure1);
 

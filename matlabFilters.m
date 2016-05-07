@@ -267,7 +267,7 @@ classdef matlabFilters
         
         
         function [ ] = initialConditions(a0cond1G, a1cond1G, a3cond1G, b0cond1G, b1cond1G, c1cond1G, c2cond1G, d0cond1G, d1cond1G, MoXcond1G, SoXcond1G, ...
-                                        omegacond2G, alphacond2G, betacond2G, d11cond2G, d22cond2G, SoXcond2G, MoXcond2G, MoYcond2G, gammaG)
+                                        omegacond2G, alphacond2G, betacond2G, d11cond2G, d22cond2G, SoXcond2G, SoYcond2G, MoXcond2G, MoYcond2G, gammaG)
                         
             global deltaTime;
             global N;
@@ -297,6 +297,7 @@ classdef matlabFilters
             global d11cond2;
             global d22cond2;
             global SoXcond2;
+            global SoYcond2;
             global gamma;
             global MoXcond2;
             global MoYcond2;
@@ -359,6 +360,7 @@ classdef matlabFilters
             d11cond2 = d11cond2G;
             d22cond2 = d22cond2G;
             SoXcond2 = SoXcond2G;
+            SoYcond2 = SoYcond2G;
             MoXcond2 = MoXcond2G;
             MoYcond2 = MoYcond2G;
             gamma = gammaG;
@@ -393,6 +395,7 @@ classdef matlabFilters
             global SoZcond1;
             
             global SoXcond2;
+            global SoYcond2;
             global MoXcond2;
             global MoYcond2;
             
@@ -475,13 +478,13 @@ classdef matlabFilters
             
             if(condition == 2)
                  for i = 1:N;
-                    P(:, :, i) = [SoXcond2*SoXcond2, 0; 0, SoXcond2*SoXcond2];
-                    J(:, :, i) = [SoXcond2*SoXcond2, 0; 0, SoXcond2*SoXcond2];
+                    P(:, :, i) = [SoXcond2*SoXcond2, 0; 0, SoYcond2*SoYcond2];
+                    J(:, :, i) = [SoXcond2*SoXcond2, 0; 0, SoYcond2*SoYcond2];
                     Z_aofL(:, i) = [MoXcond2, MoYcond2];
                     Z_fosL(:, i) = Z_aofL(:, i);
 
                     X(1, i) = normrnd(MoXcond2, SoXcond2);
-                    X(2, i) = normrnd(MoYcond2, SoXcond2);
+                    X(2, i) = normrnd(MoYcond2, SoYcond2);
                  end
             end
             
@@ -780,7 +783,7 @@ classdef matlabFilters
                         plot(tToPlot.'.', XForTrajectoryPlot(j, :).' - 3*SeFosLToPlot.', '--', 'color', [150, 150, 150]/255);
                         hold on;
 
-                        legend(strcat('X', int2str(j)), strcat('Z', int2str(j), ' AOF-L'), 'X + 3Se FOS-L', 'X - 3Se FOS-L');
+                        legend(strcat('X', int2str(j)), strcat('Z', int2str(j), ' FOS-L'), 'X + 3Se FOS-L', 'X - 3Se FOS-L');
                         title(strcat('Траектория j= ', int2str(stepForTrajectory), ' из ', int2str(N)));
                     end
                 end
@@ -824,22 +827,24 @@ classdef matlabFilters
                     if(buildLFOS)
                         plot(tToPlot.', MeFosLToPlot.', 'kx--');
                     end
-
+                    
+                    
+                  
                     % legend format
                     if(buildLAOF && buildLFOS)
-                        legend(strcat('Mx', int2str(j)), strcat('Me', int2str(j), ' AOF-L'), strcat('Me', int2str(j), ' FOS-L'));
+                        legend(strcat('Mx', num2str(j)), strcat('Me', num2str(j), ' AOF-L'), strcat('Me', num2str(j), ' FOS-L'));
                     end
                     if(buildLAOF && ~buildLFOS)
-                        legend(strcat('Mx', int2str(j)), strcat('Me', int2str(j), ' AOF-L'));
+                        legend(strcat('Mx', num2str(j)), strcat('Me', num2str(j), ' AOF-L'));
                     end
                     if(~buildLAOF && buildLFOS)
-                        legend(strcat('Mx', int2str(j)), strcat('Me', int2str(j), ' FOS-L'));
+                        legend(strcat('Mx', num2str(j)), strcat('Me', num2str(j), ' FOS-L'));
                     end
                     if(~buildLAOF && ~buildLFOS)
-                        legend(strcat('Mx', int2str(j)));
+                        legend(strcat('Mx', num2str(j)));
                     end
                     
-                    title(strcat('max|Mx|=', num2str(maxMx(1, j)), '; max|Me AOF-L|=', num2str(maxMeAOFL(1, j)), '; max|Me FOS-L|=', num2str(maxMeFOSL(1, j))));
+                    title(strcat('max|Mx|=', num2str(maxMx(1, j), '%10.2e'), '; max|Me AOF-L|=', num2str(maxMeAOFL(1, j), '%10.2e'), '; max|Me FOS-L|=', num2str(maxMeFOSL(1, j), '%10.2e')));
                 end
             end
             

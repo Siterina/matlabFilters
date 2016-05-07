@@ -22,7 +22,7 @@ function varargout = matlabFiltersExtraOptionsCondition2(varargin)
 
 % Edit the above text to modify the response to help matlabFiltersExtraOptionsCondition2
 
-% Last Modified by GUIDE v2.5 05-May-2016 20:09:49
+% Last Modified by GUIDE v2.5 06-May-2016 17:48:06
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -60,7 +60,8 @@ guidata(hObject, handles);
 
 axes(handles.axes1);
 I = imread('condition2_equation.png');
-imshow(I, [0, 2]);
+imshow(I);
+truesize(handles.figure1);
 % UIWAIT makes matlabFiltersExtraOptionsCondition2 wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
@@ -87,12 +88,13 @@ betacond2 = str2double(get(handles.editBeta, 'String'));
 d11cond2 = str2double(get(handles.editD11, 'String'));
 d22cond2 = str2double(get(handles.editD22, 'String'));
 SoXcond2 = str2double(get(handles.editSoX, 'String'));
+SoYcond2 = str2double(get(handles.editSoY, 'String'));
 MoXcond2 = str2double(get(handles.editMoX, 'String'));
 MoYcond2 = str2double(get(handles.editMoY, 'String'));
 gamma = str2double(get(handles.editGamma, 'String'));
 
 matlabFilters.initialConditions(0, -0.5, -1, 1.5, 0, 1, 0.5, 1, 0.1, 0.5, 0.6, ...
-                                omegacond2, alphacond2, betacond2, d11cond2, d22cond2, SoXcond2, MoXcond2, MoYcond2, gamma);
+                                omegacond2, alphacond2, betacond2, d11cond2, d22cond2, SoXcond2, SoYcond2, MoXcond2, MoYcond2, gamma);
 
 close(handles.figure1);
 
@@ -294,6 +296,29 @@ function editGamma_Callback(hObject, eventdata, handles)
 % --- Executes during object creation, after setting all properties.
 function editGamma_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to editGamma (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function editSoY_Callback(hObject, eventdata, handles)
+% hObject    handle to editSoY (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of editSoY as text
+%        str2double(get(hObject,'String')) returns contents of editSoY as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function editSoY_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to editSoY (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
