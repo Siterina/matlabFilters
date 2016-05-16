@@ -1,0 +1,24 @@
+ant:
+<ant>
+  <mkdir dir="D:\study\Rudenko\matlabFilters\matlabFilters\for_redistribution" />
+  <mkdir dir="D:\study\Rudenko\matlabFilters\matlabFilters\for_testing" />
+  <mkdir dir="D:\study\Rudenko\matlabFilters\matlabFilters\for_redistribution_files_only" />
+</ant>
+mcc -C -o matlabFilters -W WinMain:matlabFilters -T link:exe -d D:\study\Rudenko\matlabFilters\matlabFilters\for_testing -v D:\study\Rudenko\matlabFilters\matlabFiltersGUI.m 
+Compiler version: 6.0 (R2015a)
+Dependency analysis by REQUIREMENTS.
+[Warning: Adding path "D:\study\Rudenko\matlabFilters" to Compiler path
+instance.] 
+Parsing file "D:\study\Rudenko\matlabFilters\matlabFiltersGUI.m"
+	(Referenced from: "Compiler Command Line").
+Deleting 1 temporary MEX authorization files.
+Removing: 'C:\Users\ALEXAN~1\AppData\Local\Temp\mathworks_tmp_0101826725_4120.auth'.
+Generating file "D:\study\Rudenko\matlabFilters\matlabFilters\for_testing\readme.txt".
+Packaging...
+Adding custom icon C:\Program Files\MATLAB\MATLAB Production Server\R2015a\toolbox\compiler\Resources\default_icon.ico to D:\study\Rudenko\matlabFilters\matlabFilters\for_testing\matlabFilters.exe.
+Attempting to embed the CTF archive into the application D:\study\Rudenko\matlabFilters\matlabFilters\for_testing\matlabFilters.exe.
+Finished embedding CTF archive. Deleting the external CTF archive.
+Creating the bundle...
+Web based installer created at D:\study\Rudenko\matlabFilters\matlabFilters\for_redistribution\MyAppInstaller_web.exe.
+Packaging complete.
+Elapsed packaging time was: 3 minutes and 37 seconds.

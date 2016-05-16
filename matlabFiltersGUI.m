@@ -22,7 +22,7 @@ function varargout = matlabFiltersGUI(varargin)
 
 % Edit the above text to modify the response to help matlabFiltersGUI
 
-% Last Modified by GUIDE v2.5 05-May-2016 18:50:48
+% Last Modified by GUIDE v2.5 14-May-2016 19:53:15
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -59,7 +59,7 @@ handles.output = hObject;
 guidata(hObject, handles);
 
 matlabFilters.initialConditions(0, -0.5, -1, 1.5, 0, 1, 0.5, 1, 0.1, 0.5, 0.6, ...
-                                0.1*3.1415, 2, 1, 0.1, 0.1, 0.45, 0.45, 10, -3, 1);
+                                0.1*3.1415, 2, 1, 0.1, 0.1, 0.58, 0.58, 10, -3, 1);
 
 % UIWAIT makes matlabFiltersGUI wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
@@ -85,6 +85,7 @@ condition = 1;
 buildTrajectory = false;
 buildLAOF = true;
 buildLFOS = true;
+buildGAOF = true;
 buildMx = false;
 
 if (get(handles.radioButtonCondition1,'Value') == 1)
@@ -105,6 +106,9 @@ end
 if(get(handles.checkBoxLFOS, 'Value') == 0)
     buildLFOS = false;
 end
+if(get(handles.checkBoxGAOF, 'Value') == 0)
+    buildGAOF = false;
+end
 if(get(handles.checkBoxMx, 'Value') == 1)
     buildMx = true;
 end
@@ -113,7 +117,7 @@ N = str2double(get(handles.editN, 'String'));
 K = str2double(get(handles.editK, 'String'));
 deltaTime = str2double(get(handles.editDeltaTime, 'String'));
 trajectoryNumber = str2double(get(handles.editTrajectoryNumber, 'String'));
-matlabFilters.main(condition, N, K, deltaTime, buildTrajectory, trajectoryNumber, buildLAOF, buildLFOS, buildMx);
+matlabFilters.main(condition, N, K, deltaTime, buildTrajectory, trajectoryNumber, buildLAOF, buildLFOS, buildGAOF, buildMx);
 
 
 
@@ -291,3 +295,41 @@ function pushButtonExit_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 close(handles.figure1);
+
+
+% --- Executes on button press in radioButtonCondition2.
+function radioButtonCondition2_Callback(hObject, eventdata, handles)
+% hObject    handle to radioButtonCondition2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radioButtonCondition2
+set(handles.checkBoxGAOF, 'Enable', 'off');
+set(handles.checkBoxGFOS, 'Enable', 'off');
+set(handles.checkBoxGAOF, 'Value', 0);
+set(handles.checkBoxGFOS, 'Value', 0);
+
+
+% --- Executes on button press in radioButtonCondition1.
+function radioButtonCondition1_Callback(hObject, eventdata, handles)
+% hObject    handle to radioButtonCondition1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radioButtonCondition1
+set(handles.checkBoxGAOF, 'Enable', 'on');
+set(handles.checkBoxGFOS, 'Enable', 'on');
+
+
+
+% --- Executes on button press in radioButtonCondition3.
+function radioButtonCondition3_Callback(hObject, eventdata, handles)
+% hObject    handle to radioButtonCondition3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of radioButtonCondition3
+set(handles.checkBoxGAOF, 'Enable', 'off');
+set(handles.checkBoxGFOS, 'Enable', 'off');
+set(handles.checkBoxGAOF, 'Value', 0);
+set(handles.checkBoxGFOS, 'Value', 0);
