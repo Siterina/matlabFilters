@@ -86,6 +86,7 @@ buildTrajectory = false;
 buildLAOF = true;
 buildLFOS = true;
 buildGAOF = true;
+buildGFOS = true;
 buildMx = false;
 
 if (get(handles.radioButtonCondition1,'Value') == 1)
@@ -109,6 +110,9 @@ end
 if(get(handles.checkBoxGAOF, 'Value') == 0)
     buildGAOF = false;
 end
+if(get(handles.checkBoxGFOS, 'Value') == 0)
+    buildGFOS = false;
+end
 if(get(handles.checkBoxMx, 'Value') == 1)
     buildMx = true;
 end
@@ -117,7 +121,7 @@ N = str2double(get(handles.editN, 'String'));
 K = str2double(get(handles.editK, 'String'));
 deltaTime = str2double(get(handles.editDeltaTime, 'String'));
 trajectoryNumber = str2double(get(handles.editTrajectoryNumber, 'String'));
-matlabFilters.main(condition, N, K, deltaTime, buildTrajectory, trajectoryNumber, buildLAOF, buildLFOS, buildGAOF, buildMx);
+matlabFilters.main(condition, N, K, deltaTime, buildTrajectory, trajectoryNumber, buildLAOF, buildLFOS, buildGAOF, buildGFOS, buildMx);
 
 
 
