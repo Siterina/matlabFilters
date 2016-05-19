@@ -94,7 +94,8 @@ MoYcond2 = str2double(get(handles.editMoY, 'String'));
 gamma = str2double(get(handles.editGamma, 'String'));
 
 matlabFilters.initialConditions(0, -0.5, -1, 1.5, 0, 1, 0.5, 1, 0.1, 0.5, 0.6, ...
-                                omegacond2, alphacond2, betacond2, d11cond2, d22cond2, SoXcond2, SoYcond2, MoXcond2, MoYcond2, gamma);
+                                omegacond2, alphacond2, betacond2, d11cond2, d22cond2, SoXcond2, SoYcond2, MoXcond2, MoYcond2, gamma, ...
+                                0, 1, 0, 1, 0.1, 62.832, 0, 1.815);
 
 close(handles.figure1);
 

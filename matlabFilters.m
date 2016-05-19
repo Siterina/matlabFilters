@@ -17,6 +17,10 @@ classdef matlabFilters
         end
         
         function [ a ] = a(t, x, condition)
+            if(condition == 4)
+                global a1cond4;
+                a = a1cond4 * x;
+            end
             if(condition == 3)
                 global c3;
                 global betaC3;
@@ -44,9 +48,18 @@ classdef matlabFilters
             end
         end
         
-        function [ a_hut ] = a_hut(t, x, p, condition)         
+        function [ a_hut ] = a_hut(t, x, p, condition)    
+            if(condition == 4)
+                global a1cond4;
+                a_hut = a1cond4 * x;
+            end
             if(condition == 2)
-                
+                global omegacond2;
+                global alphacond2;
+                global betacond2;
+                a_hut(1, 1) = x(2);
+                %a_hut(2, 1) = -omegacond2*omegacond2*x(1) + alphacond2*x(2) - alphacond2*betacond2*x(2)*(x(1)*x(1) + p(1, 1)); % из диплома
+                a_hut(2, 1) = -omegacond2*omegacond2*x(1) + alphacond2*x(2) - alphacond2*betacond2*(x(1)*x(1)*x(2) + 2*x(1)*p(1, 2)+ x(2)*p(1, 1)); % посчитано
             end           
             if(condition == 1)
                 global a0cond1;
@@ -58,6 +71,12 @@ classdef matlabFilters
         end
         
         function [ c ] = c(t, x, condition)
+            if(condition == 4)
+                global c1cond4;
+                global c2cond4;
+                global omegacond4;
+                c = c1cond4 * x + c2cond4 * sin(x + omegacond4*t);
+            end
             if(condition == 3)
                 global c3;
                 global betaC3;
@@ -78,9 +97,16 @@ classdef matlabFilters
             end
         end
         
-        function [ c_hut ] = c_hut(t, x, p, condition)    
+        function [ c_hut ] = c_hut(t, x, p, condition) 
+            if(condition == 4)
+                global c1cond4;
+                global c2cond4;
+                global omegacond4;
+                c_hut = c1cond4*x + c2cond4*exp(-p/2)*sin(x + omegacond4*t);
+            end
             if(condition == 2)
-                
+                c_hut(1, 1) = x(1);
+                c_hut(2, 1) = x(2);
             end            
             if(condition == 1)
                 global c1cond1;
@@ -93,6 +119,10 @@ classdef matlabFilters
         
         function [ B ] = B(t, x, condition)
             global gamma;
+            if(condition == 4)
+                global b1cond4;
+                B = b1cond4;
+            end
             if(condition == 3)
                 B = zeros(3, 2);
             end            
@@ -111,6 +141,10 @@ classdef matlabFilters
         
         function [ D ] = D(t, x, condition)
             global gamma;
+            if(condition == 4)
+                global d1cond4;
+                D = d1cond4;
+            end
             if(condition == 3)
                 global c3;
                 global betaC3;
@@ -160,16 +194,33 @@ classdef matlabFilters
         end
         
         function [ Q_hut ] = Q_hut(t, x, p, condition)
-            global  b1cond1;
-            B = matlabFilters.B(t, x, condition);
-            Q = B * B.';
-            Q_hut = Q +  b1cond1 * b1cond1 * p;
+            if(condition == 4)
+                global  b1cond4;
+                Q_hut = b1cond4 * b1cond4;
+            end
+            if(condition == 2)
+                global gamma;
+                Q_hut(1, 1) = 0;
+                Q_hut(1, 2) = 0;
+                Q_hut(2, 1) = 0;
+                Q_hut(2, 2) = gamma*gamma*(x(1)*x(1) + p(1, 1));
+            end
+            if(condition == 1)
+                global  b1cond1;
+                B = matlabFilters.B(t, x, condition);
+                Q = B * B.';
+                Q_hut = Q +  b1cond1 * b1cond1 * p;
+            end
         end
         
         
         % Support functions for Kalman filter
         
         function [ A ] = A(t, x, condition)                               % матрица якоби первых производных a(t, x) по x
+            if(condition == 4)
+                global a1cond4;
+                A = -a1cond4;
+            end
             if(condition == 3)
                 global c3;
                 global betaC3;
@@ -206,8 +257,20 @@ classdef matlabFilters
         end
         
         function [ A_hut ] = A_hut(t, x, p, condition)                               % матрица якоби первых производных a_hut(t, x) по x     
+            if(condition == 4)
+                global a1cond4;
+                A_hut = -a1cond4;
+            end
             if(condition == 2)
-                
+                global omegacond2;
+                global alphacond2;
+                global betacond2;
+                A_hut(1, 1) = 0;
+                A_hut(1, 2) = 1;
+%                 A_hut(2, 1) = -omegacond2*omegacond2 - 2*alphacond2*betacond2*x(1)*x(2); % pdf
+%                 A_hut(2, 2) = alphacond2 - alphacond2*betacond2*(x(1)*x(1) + p(1, 1));
+                A_hut(2, 1) = -omegacond2*omegacond2 - 2*alphacond2*betacond2*(x(1)*x(2) + p(1, 2));
+                A_hut(2, 2) = alphacond2 - alphacond2*betacond2*(x(1)*x(1) + p(1, 1));
             end           
             if(condition == 1)
                 global a0cond1;
@@ -219,6 +282,12 @@ classdef matlabFilters
         end
         
         function [ G ] = G(t, x, condition)                               % матрица якоби первых производных с(t, x) по x
+            if(condition == 4)
+                global c1cond4;
+                global c2cond4;
+                global omegacond4;
+                G = c1cond4  + c2cond4 * cos(x + omegacond4*t);
+            end
             if(condition == 3)
                 global c3;
                 global betaC3;
@@ -246,9 +315,18 @@ classdef matlabFilters
         end
         
         function [ G_hut ] = G_hut(t, x, p, condition)                               % матрица якоби первых производных с_hut(t, x) по x
+            if(condition == 4)
+                global c1cond4;
+                global c2cond4;
+                global omegacond4;
+                G_hut = c1cond4 + c2cond4*exp(-p/2)*cos(x + omegacond4*t);
+            end
             if(condition == 2)
-                
-           end            
+                G_hut(1, 1) = 1;
+                G_hut(1, 2) = 0;
+                G_hut(2, 1) = 0;
+                G_hut(2, 2) = 1;
+           end         
            if(condition == 1)
                 global c1cond1;
                 global c2cond1;
@@ -258,8 +336,14 @@ classdef matlabFilters
         end
         
         function [ Theta ] = Theta(t, x, p, condition)
+            if(condition == 4)
+                global c2cond4;
+                global omegacond4;
+                Theta = -p*p* c2cond4*exp(-p/2)*sin(x + omegacond4*t);
+            end
             if(condition == 2)
-                
+                Theta(1, 1) = 0;
+                Theta(1, 2) = 0;
            end 
             if(condition == 1)
                 global c2cond1;
@@ -284,7 +368,8 @@ classdef matlabFilters
                 matlabFilters.R(t, x, condition) * matlabFilters.K(t, x, p, condition).';
         end
         
-        function [ Ksi_hut ] = Ksi_hut(t, x, p, condition)                        
+        function [ Ksi_hut ] = Ksi_hut(t, x, p, condition)
+            
             Ksi_hut = matlabFilters.A_hut(t, x, p, condition) * p + p * matlabFilters.A_hut(t, x, p, condition).' + ...
                 matlabFilters.Q_hut(t, x, p, condition) - matlabFilters.K_hut(t, x, p, condition) * ... 
                 matlabFilters.R(t, x, condition) * matlabFilters.K_hut(t, x, p, condition).';
@@ -301,9 +386,9 @@ classdef matlabFilters
             D = Dx + ((x - Mx) * (x - Mx) * (i - 1)/i - Dx)/i;
         end
         
-        function [ M ] = mathExpectation(Temp, condition)
+        function [ M ] = mathExpectation(Temp, NX)
             global N;          
-            M = zeros(condition, 1);
+            M = zeros(NX, 1);
             for i = 1:N
                 M = M + Temp(:, i);
             end
@@ -311,26 +396,26 @@ classdef matlabFilters
         end
         
         
-        function [ D ] = dispersion(Temp, M, condition)
+        function [ D ] = dispersion(Temp, M, NX)
             global N;
-            if(condition == 1)
+            if(NX == 1)
                 D = 0;
                 for i = 1:N
                     D = D + (Temp(i) - M)*(Temp(i) - M);
                 end
                 D = D * 1/(N-1);
             end
-            if(condition > 1)
-                D = zeros(condition, condition);
+            if(NX > 1)
+                D = zeros(NX, NX);
                 for i = 1:N
-                    for j = 1:condition
-                        for k = 1:condition
+                    for j = 1:NX
+                        for k = 1:NX
                             D(j, k) = D(j, k) + (Temp(j, i) - M(j))*(Temp(k, i) - M(k));
                         end
                     end
                 end
-                for j = 1:condition
-                    for k = 1:condition
+                for j = 1:NX
+                    for k = 1:NX
                         D(j, k) = D(j, k)/(N-1);
                     end
                 end
@@ -341,7 +426,8 @@ classdef matlabFilters
         
         
         function [ ] = initialConditions(a0cond1G, a1cond1G, a3cond1G, b0cond1G, b1cond1G, c1cond1G, c2cond1G, d0cond1G, d1cond1G, MoXcond1G, SoXcond1G, ...
-                                        omegacond2G, alphacond2G, betacond2G, d11cond2G, d22cond2G, SoXcond2G, SoYcond2G, MoXcond2G, MoYcond2G, gammaG)
+                                        omegacond2G, alphacond2G, betacond2G, d11cond2G, d22cond2G, SoXcond2G, SoYcond2G, MoXcond2G, MoYcond2G, gammaG, ...
+                                        a1cond4G, b1cond4G, c1cond4G, c2cond4G, d1cond4G, omegacond4G, MoXcond4G, SoXcond4G)
                         
             global deltaTime;
             global N;
@@ -391,6 +477,16 @@ classdef matlabFilters
             global SoXh;
             global sigmaM;
             global sigmaA;
+            
+            %4 condition
+            global a1cond4;
+            global b1cond4;
+            global c1cond4;
+            global c2cond4;
+            global d1cond4;
+            global omegacond4
+            global MoXcond4;
+            global SoXcond4;
             
             
             %1 condition
@@ -455,6 +551,18 @@ classdef matlabFilters
             SoXh = 7000;
             sigmaM = 0;
             sigmaA = 200;
+            
+            
+            %4 condition
+            a1cond4 = a1cond4G;
+            b1cond4 = b1cond4G;
+            c1cond4 = c1cond4G;
+            c2cond4 = c2cond4G;
+            d1cond4 = d1cond4G;
+            omegacond4 = omegacond4G;
+            MoXcond4 = MoXcond4G;
+            SoXcond4 = SoXcond4G;
+            
            
         end
         
@@ -467,6 +575,8 @@ classdef matlabFilters
             global SoXcond1;
             global SoYcond1;
             global SoZcond1;
+            global MoXcond4;
+            global SoXcond4;
             
             global SoXcond2;
             global SoYcond2;
@@ -487,6 +597,11 @@ classdef matlabFilters
             deltaTime = deltaTime1;
 
 %             matlabFilters.initialConditions();
+            if(condition == 4)
+                NX = 1;
+                NY = 1;
+                NW = 1;
+           end 
             if(condition == 3)
                 NX = 3;
                 NY = 2;
@@ -549,6 +664,20 @@ classdef matlabFilters
 
             
             rng(10);
+            if(condition == 4)
+                for i = 1:N
+                    X(:, i) = normrnd(MoXcond4, SoXcond4);
+                    Z_aofL(:, i) = MoXcond4;
+                    Z_fosL(:, i) = Z_aofL(:, i);
+                    Z_aofG(:, i) = Z_aofL(:, i);
+                    Z_fosG(:, i) = Z_aofL(:, i);
+                    P_L(:, :, i) = SoXcond4 * SoXcond4;
+                    P_G(:, :, i) = P_L(:, :, i);
+                    J_L(:, :, i) = P_L(:, :, i);
+                    J_G(:, :, i) = P_L(:, :, i);
+                end
+            end
+            
             if(condition == 3)
                  for i = 1:N;
                     P_L(:, :, i) = [SoXv*SoXv, 0, 0; 0, SoXteta*SoXteta, 0; 0, 0, SoXh*SoXh];
@@ -597,21 +726,21 @@ classdef matlabFilters
             end
             
             % step #0
-            Mx = matlabFilters.mathExpectation(X, condition);
-            Meps_aofL = matlabFilters.mathExpectation(X - Z_aofL, condition);
-            Deps_aofL = matlabFilters.dispersion(X - Z_aofL, Meps_aofL, condition);
-            Meps_fosL = matlabFilters.mathExpectation(X - Z_fosL, condition);
-            Deps_fosL = matlabFilters.dispersion(X - Z_fosL, Meps_fosL, condition);
-            Meps_aofG = matlabFilters.mathExpectation(X - Z_aofG, condition);
-            Deps_aofG = matlabFilters.dispersion(X - Z_aofG, Meps_aofG, condition);
-            Meps_fosG = matlabFilters.mathExpectation(X - Z_fosG, condition);
-            Deps_fosG = matlabFilters.dispersion(X - Z_fosG, Meps_fosG, condition);
+            Mx = matlabFilters.mathExpectation(X, NX);
+            Meps_aofL = matlabFilters.mathExpectation(X - Z_aofL, NX);
+            Deps_aofL = matlabFilters.dispersion(X - Z_aofL, Meps_aofL, NX);
+            Meps_fosL = matlabFilters.mathExpectation(X - Z_fosL, NX);
+            Deps_fosL = matlabFilters.dispersion(X - Z_fosL, Meps_fosL, NX);
+            Meps_aofG = matlabFilters.mathExpectation(X - Z_aofG, NX);
+            Deps_aofG = matlabFilters.dispersion(X - Z_aofG, Meps_aofG, NX);
+            Meps_fosG = matlabFilters.mathExpectation(X - Z_fosG, NX);
+            Deps_fosG = matlabFilters.dispersion(X - Z_fosG, Meps_fosG, NX);
             
-            Dx = matlabFilters.dispersion(X, Mx, condition);
-            Mz_fosL = matlabFilters.mathExpectation(Z_fosL, condition);
-            Dz_fosL = matlabFilters.dispersion(Z_fosL, Mz_fosL, condition);
-            Mz_fosG = matlabFilters.mathExpectation(Z_fosG, condition);
-            Dz_fosG = matlabFilters.dispersion(Z_fosG, Mz_fosG, condition);
+            Dx = matlabFilters.dispersion(X, Mx, NX);
+            Mz_fosL = matlabFilters.mathExpectation(Z_fosL, NX);
+            Dz_fosL = matlabFilters.dispersion(Z_fosL, Mz_fosL, NX);
+            Mz_fosG = matlabFilters.mathExpectation(Z_fosG, NX);
+            Dz_fosG = matlabFilters.dispersion(Z_fosG, Mz_fosG, NX);
             
 
             Sx = ones(NX, 1);
@@ -719,9 +848,10 @@ classdef matlabFilters
                         Z_aofG(:, i) = Z_aofG(:, i) + matlabFilters.a_hut(t, Z_aofG(:, i), P_G(:, :, i), condition)*deltaTime + ...
                             matlabFilters.K_hut(t, Z_aofG(:, i), P_G(:, :, i), condition)*(deltaY(:, i) - ...
                             matlabFilters.c_hut(t, Z_aofG(:, i), P_G(:, :, i), condition)*deltaTime);
+
                         P_G(:, :, i) = P_G(:, :, i) +  matlabFilters.Ksi_hut(t, Z_aofG(:, i), P_G(:, :, i), condition)*deltaTime + ...
-                            matlabFilters.Theta(t, Z_aofG(:, i), P_G(:, :, i), condition) * matlabFilters.R(t, Z_aofG(:, i), condition) ...
-                            * (deltaY(:, i) - matlabFilters.c_hut(t, Z_aofG(:, i), P_G(:, :, i), condition)*deltaTime);
+                            matlabFilters.R(t, Z_aofG(:, i), condition)* (deltaY(:, i) - matlabFilters.c_hut(t, Z_aofG(:, i), P_G(:, :, i), condition) * deltaTime) ...
+                            * matlabFilters.Theta(t, Z_aofG(:, i), P_G(:, :, i), condition);
                    end
                     
                    if(buildGFOS)
@@ -738,28 +868,28 @@ classdef matlabFilters
                 % end of realization loop
 
                 % calculation of characteristics
-                Mx = matlabFilters.mathExpectation(X, condition);
-                Dx = matlabFilters.dispersion(X, Mx, condition);
+                Mx = matlabFilters.mathExpectation(X, NX);
+                Dx = matlabFilters.dispersion(X, Mx, NX);
     
                 if(buildLAOF)
-                    Meps_aofL = matlabFilters.mathExpectation(X - Z_aofL, condition);
-                    Deps_aofL = matlabFilters.dispersion(X - Z_aofL, Meps_aofL, condition);
+                    Meps_aofL = matlabFilters.mathExpectation(X - Z_aofL, NX);
+                    Deps_aofL = matlabFilters.dispersion(X - Z_aofL, Meps_aofL, NX);
                 end
                 if(buildLFOS)
-                    Meps_fosL = matlabFilters.mathExpectation(X - Z_fosL, condition);
-                    Deps_fosL = matlabFilters.dispersion(X - Z_fosL, Meps_fosL, condition);
-                    Mz_fosL = matlabFilters.mathExpectation(Z_fosL, condition);
-                    Dz_fosL = matlabFilters.dispersion(Z_fosL, Mz_fosL, condition);
+                    Meps_fosL = matlabFilters.mathExpectation(X - Z_fosL, NX);
+                    Deps_fosL = matlabFilters.dispersion(X - Z_fosL, Meps_fosL, NX);
+                    Mz_fosL = matlabFilters.mathExpectation(Z_fosL, NX);
+                    Dz_fosL = matlabFilters.dispersion(Z_fosL, Mz_fosL, NX);
                 end
                 if(buildGAOF)
-                    Meps_aofG = matlabFilters.mathExpectation(X - Z_aofG, condition);
-                    Deps_aofG = matlabFilters.dispersion(X - Z_aofG, Meps_aofG, condition);
+                    Meps_aofG = matlabFilters.mathExpectation(X - Z_aofG, NX);
+                    Deps_aofG = matlabFilters.dispersion(X - Z_aofG, Meps_aofG, NX);
                 end
                 if(buildGFOS)
-                    Meps_fosG = matlabFilters.mathExpectation(X - Z_fosG, condition);
-                    Deps_fosG = matlabFilters.dispersion(X - Z_fosG, Meps_fosG, condition);
-                    Mz_fosG = matlabFilters.mathExpectation(Z_fosG, condition);
-                    Dz_fosG = matlabFilters.dispersion(Z_fosG, Mz_fosG, condition);
+                    Meps_fosG = matlabFilters.mathExpectation(X - Z_fosG, NX);
+                    Deps_fosG = matlabFilters.dispersion(X - Z_fosG, Meps_fosG, NX);
+                    Mz_fosG = matlabFilters.mathExpectation(Z_fosG, NX);
+                    Dz_fosG = matlabFilters.dispersion(Z_fosG, Mz_fosG, NX);
                 end
                 
                 
@@ -862,22 +992,83 @@ classdef matlabFilters
 %                 end
 %             end
 %             if(condition == 2)
-%                 disp('     time       Mx1       Mx2   MepsAofL1  MepsAofL2    Sx1      Sx2    SepsAofL1 SepsAofL2  CritAofL1 CritAofL2 ICritAofL1 ICritAofL2');
-%                 answMatrix = [tTable, MxTable(1, :, :), MxTable(2, :, :), Meps_aofLTable(1, :, :), Meps_aofLTable(2, :, :), ...
-%                     SxTable(1, :, :), SxTable(2, :, :), Seps_aofLTable(1, :, :), Seps_aofLTable(2, :, :), Crit_aofLTable(1, :, :), Crit_aofLTable(2, :, :), ...
-%                     ICrit_aofLTable(1, :, :), ICrit_aofLTable(2, :, :)];
-%                 for i = 1:K
-%                     disp(answMatrix(:,:,i));
+%                 if(buildLAOF)
+%                     disp('     time       Mx1       Mx2   MepsAofL1  MepsAofL2    Sx1      Sx2    SepsAofL1 SepsAofL2  CritAofL1 CritAofL2 ICritAofL1 ICritAofL2');
+%                     answMatrix = [tTable, MxTable(1, :, :), MxTable(2, :, :), Meps_aofLTable(1, :, :), Meps_aofLTable(2, :, :), ...
+%                         SxTable(1, :, :), SxTable(2, :, :), Seps_aofLTable(1, :, :), Seps_aofLTable(2, :, :), Crit_aofLTable(1, :, :), Crit_aofLTable(2, :, :), ...
+%                         ICrit_aofLTable(1, :, :), ICrit_aofLTable(2, :, :)];
+%                     for i = 1:K
+%                         disp(answMatrix(:,:,i));
+%                     end
 %                 end
 %                 
-%                 disp('     time       Mx1       Mx2   MepsFosL1  MepsFosL2    Sx1      Sx2    SepsFosL1 SepsFosL2  CritFosL1 CritFosL2 ICritFosL1 ICritFosL2');
-%                 answMatrix = [tTable, MxTable(1, :, :), MxTable(2, :, :), Meps_fosLTable(1, :, :), Meps_fosLTable(2, :, :), ...
-%                     SxTable(1, :, :), SxTable(2, :, :), Seps_fosLTable(1, :, :), Seps_fosLTable(2, :, :), Crit_fosLTable(1, :, :), Crit_fosLTable(2, :, :), ...
-%                     ICrit_fosLTable(1, :, :), ICrit_fosLTable(2, :, :)];
+%                 if(buildLFOS)
+%                     disp('     time       Mx1       Mx2   MepsFosL1  MepsFosL2    Sx1      Sx2    SepsFosL1 SepsFosL2  CritFosL1 CritFosL2 ICritFosL1 ICritFosL2');
+%                     answMatrix = [tTable, MxTable(1, :, :), MxTable(2, :, :), Meps_fosLTable(1, :, :), Meps_fosLTable(2, :, :), ...
+%                         SxTable(1, :, :), SxTable(2, :, :), Seps_fosLTable(1, :, :), Seps_fosLTable(2, :, :), Crit_fosLTable(1, :, :), Crit_fosLTable(2, :, :), ...
+%                         ICrit_fosLTable(1, :, :), ICrit_fosLTable(2, :, :)];
+%                     for i = 1:K
+%                         disp(answMatrix(:,:,i));
+%                     end
+%                 end
+%                 
+%                 
+%                 if(buildGAOF)
+%                     disp('     time       Mx1       Mx2   MepsAofG1  MepsAofG2    Sx1      Sx2    SepsAofG1 SepsAofG2  CritAofG1 CritAofG2 ICritAofG1 ICritAofG2');
+%                     answMatrix = [tTable, MxTable(1, :, :), MxTable(2, :, :), Meps_aofGTable(1, :, :), Meps_aofGTable(2, :, :), ...
+%                         SxTable(1, :, :), SxTable(2, :, :), Seps_aofGTable(1, :, :), Seps_aofGTable(2, :, :), Crit_aofGTable(1, :, :), Crit_aofGTable(2, :, :), ...
+%                         ICrit_aofGTable(1, :, :), ICrit_aofGTable(2, :, :)];
+%                     for i = 1:K
+%                         disp(answMatrix(:,:,i));
+%                     end
+%                 end
+%                 
+%                 
+%                 if(buildGFOS)
+%                     disp('     time       Mx1       Mx2   MepsFosG1  MepsFosG2    Sx1      Sx2    SepsFosG1 SepsFosG2  CritFosG1 CritFosG2 ICritFosG1 ICritFosG2');
+%                     answMatrix = [tTable, MxTable(1, :, :), MxTable(2, :, :), Meps_fosGTable(1, :, :), Meps_fosGTable(2, :, :), ...
+%                         SxTable(1, :, :), SxTable(2, :, :), Seps_fosGTable(1, :, :), Seps_fosGTable(2, :, :), Crit_fosGTable(1, :, :), Crit_fosGTable(2, :, :), ...
+%                         ICrit_fosGTable(1, :, :), ICrit_fosGTable(2, :, :)];
+%                     for i = 1:K
+%                         disp(answMatrix(:,:,i));
+%                     end
+%                 end
+%             end
+            if(condition == 4)
+%                 disp('     time       Mx     Meps_aofL    Sx    Seps_aofL   Crit_aofL  ICrit_aofL');
+%                 answMatrix = [tTable, MxTable, Meps_aofLTable, SxTable, Seps_aofLTable, Crit_aofLTable, ICrit_aofLTable];
 %                 for i = 1:K
 %                     disp(answMatrix(:,:,i));
 %                 end
-%             end
+%                 disp('     time       Mx     Meps_fosL    Sx    Seps_fosL   Crit_fosL  ICrit_fosL');
+%                 answMatrix = [tTable, MxTable, Meps_fosLTable, SxTable, Seps_fosLTable, Crit_fosLTable, ICrit_fosLTable];
+%                 for i = 1:K
+%                     disp(answMatrix(:,:,i));
+%                 end
+%                 disp('     time       Mx     Meps_aofG    Sx    Seps_aofG   Crit_aofG  ICrit_aofG');
+%                 answMatrix = [tTable, MxTable, Meps_aofGTable, SxTable, Seps_aofGTable, Crit_aofGTable, ICrit_aofGTable];
+%                 for i = 1:K
+%                     disp(answMatrix(:,:,i));
+%                 end
+%                 disp('     time       Mx     Meps_fosG    Sx    Seps_fosG   Crit_fosG  ICrit_fosG');
+%                 answMatrix = [tTable, MxTable, Meps_fosGTable, SxTable, Seps_fosGTable, Crit_fosGTable, ICrit_fosGTable];
+%                 for i = 1:K
+%                     disp(answMatrix(:,:,i));
+%                 end
+                disp('     time       Mx    Meps_aofL Meps_fosL Meps_aofG Meps_fosG    ');
+                answMatrix = [tTable, MxTable, Meps_aofLTable, Meps_fosLTable, Meps_aofGTable, Meps_fosGTable];
+                for i = 1:K
+                    disp(answMatrix(:,:,i));
+                end
+                
+                disp('     time       Sx    Seps_aofL Seps_fosL Seps_aofG Seps_fosG  ');
+                answMatrix = [tTable, SxTable, Seps_aofLTable, Seps_fosLTable, Seps_aofGTable, Seps_fosGTable];
+                for i = 1:K
+                    disp(answMatrix(:,:,i));
+                end
+            end
+
+
             
 %             plot Sx, Seps, Crit
             SxToPlot = zeros(1, NX);
@@ -924,7 +1115,7 @@ classdef matlabFilters
                     end
                 end
 
-                subplot(condition,1,j);
+                subplot(NX,1,j);
                 plot(tToPlot.', SxToPlot.');
                 hold on;
                 if(buildLAOF)
@@ -938,12 +1129,12 @@ classdef matlabFilters
                 end
                 
                 if(buildGAOF)
-                    plot(tToPlot.', SeAofGToPlot.', 's-', 'color', [200, 180, 10]/255);
+                    plot(tToPlot.', SeAofGToPlot.', '*-', 'color', [200, 180, 10]/255);
                     hold on;
                 end
                 
                 if(buildGFOS)
-                    plot(tToPlot.', SeFosGToPlot.', '*--', 'color', [0, 175, 250]/255);
+                    plot(tToPlot.', SeFosGToPlot.', 's--', 'color', [0, 175, 250]/255);
                     hold on;
                 end
                 
@@ -1009,12 +1200,14 @@ classdef matlabFilters
                 if(condition == 3)
                     str = '—пуск Ћј на планету: ';
                 end
+                if(condition == 4)
+                    str = '“ригонометрический пример: ';
+                end
                 title(['\fontsize{20}', str, ' N=', int2str(N), ', deltaTime=', num2str(deltaTime), '. ']);
                 xlabel('t'); 
             end     
            
-            
-            % доделать гаоф и гфос далее
+                        
             % plot trajectory 
             if(buildTrajectory)
                 if(buildLAOF)
@@ -1056,7 +1249,51 @@ classdef matlabFilters
                         title(['\fontsize{20}', '“раектори€ j= ', int2str(stepForTrajectory), ' из ', int2str(N)]);
                     end
                 end
+                
+                if(buildGAOF)
+                    figure('name', 'trajectory: X(t), Z(t) AOF-G and confidence interval');
+                    for j = 1:NX
+                        subplot(NX,1,j);
+                        plot(tToPlot.'.', XForTrajectoryPlot(j, :).');
+                        hold on;
+                        plot(tToPlot.'.', Z_aofGForTrajectoryPlot(j, :).', '*-', 'color', [200, 180, 10]/255);
+                        hold on;
+                        xlabel('t');
+
+                        plot(tToPlot.'.', XForTrajectoryPlot(j, :).' + 3*SeAofGToPlot.', '--', 'color', [150, 150, 150]/255);
+                        hold on;
+                        plot(tToPlot.'.', XForTrajectoryPlot(j, :).' - 3*SeAofGToPlot.', '--', 'color', [150, 150, 150]/255);
+                        hold on;
+
+                        legend(strcat('X', int2str(j)), strcat('Z', int2str(j), ' AOF-G'), 'X + 3Se AOF-G', 'X - 3Se AOF-G');
+                        title(['\fontsize{20}', '“раектори€ j= ', int2str(stepForTrajectory), ' из ', int2str(N)]);
+                    end
+                end
+                
+                if(buildGFOS)
+                    figure('name', 'trajectory: X(t), Z(t) FOS-G and confidence interval');
+                    for j = 1:NX             
+                        subplot(NX,1,j);
+                        plot(tToPlot.'.', XForTrajectoryPlot(j, :).');
+                        hold on;
+                        plot(tToPlot.'.', Z_fosGForTrajectoryPlot(j, :).', 's--', 'color', [0, 175, 250]/255);
+                        xlabel('t');
+                        hold on;
+
+                        plot(tToPlot.'.', XForTrajectoryPlot(j, :).' + 3*SeFosGToPlot.', '--', 'color', [150, 150, 150]/255);
+                        hold on;
+                        plot(tToPlot.'.', XForTrajectoryPlot(j, :).' - 3*SeFosGToPlot.', '--', 'color', [150, 150, 150]/255);
+                        hold on;
+
+                        legend(strcat('X', int2str(j)), strcat('Z', int2str(j), ' FOS-G'), 'X + 3Se FOS-G', 'X - 3Se FOS-G');
+                        title(['\fontsize{20}', '“раектори€ j= ', int2str(stepForTrajectory), ' из ', int2str(N)]);
+                    end
+                end
             end
+            
+            
+            % доделать гаоф и гфос далее
+            
             
             %build Mx
             if(buildMx)
