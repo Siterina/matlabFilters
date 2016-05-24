@@ -864,7 +864,7 @@ classdef matlabFilters
                         
                         psi = f*deltaTime + matlabFilters.B(t+deltaTime, X(:, i) + fi, condition)*deltaV(:, 1, i);
                         
-                        X_H(:, i) = X_H(:, i) + 1/2*(fi + psi) + deltaTime/4 * b1cond1 * matlabFilters.B(t, X(:, i), condition);
+                        X_H(:, i) = X_H(:, i) + 1/2*(fi + psi) + deltaTime/4 8 b1cond1 * matlabFilters.B(t, X(:, i), condition);
                     end
                     
                     if(buildLAOF)
@@ -914,9 +914,6 @@ classdef matlabFilters
                 
                 Mx_R = matlabFilters.mathExpectation(X_R, NX);
                 Dx_R = matlabFilters.dispersion(X_R, Mx_R, NX);
-                
-                Mx_H = matlabFilters.mathExpectation(X_H, NX);
-                Dx_H = matlabFilters.dispersion(X_H, Mx_H, NX);
     
                 if(buildLAOF)
                     Meps_aofL = matlabFilters.mathExpectation(X - Z_aofL, NX);
@@ -942,7 +939,6 @@ classdef matlabFilters
                 
                 Sx = ones(NX, 1);
                 Sx_R = ones(NX, 1);
-                Sx_H = ones(NX, 1);
                 Seps_aofL = ones(NX, 1);
                 Crit_aofL = ones(NX, 1);
                 ICrit_aofL = ones(NX, 1);
@@ -958,7 +954,6 @@ classdef matlabFilters
                 for i = 1:NX
                     Sx(i) = sqrt(Dx(i, i));
                     Sx_R(i) = sqrt(Dx_R(i, i));
-                    Sx_H(i) = sqrt(Dx_H(i, i));
                     if(buildLAOF)
                         Seps_aofL(i) = sqrt(Deps_aofL(i, i));
                         Crit_aofL(i) = Meps_aofL(i)*Meps_aofL(i) + Deps_aofL(i,i);
@@ -993,7 +988,6 @@ classdef matlabFilters
                 Meps_aofLTable(:, :, k) = Meps_aofL;
                 SxTable(:, :, k) = Sx;
                 Sx_RTable(:, :, k) = Sx_R;
-                Sx_HTable(:, :, k) = Sx_H;
                 Seps_aofLTable(:, :, k) = Seps_aofL;                
                 Crit_aofLTable(:, :, k) = Crit_aofL;
                 ICrit_aofLTable(:, :, k) = ICrit_aofL;
@@ -1015,7 +1009,6 @@ classdef matlabFilters
                 
                 XForTrajectoryPlot(:, k) = X(:, stepForTrajectory);
                 X_RForTrajectoryPlot(:, k) = X_R(:, stepForTrajectory);
-                X_HForTrajectoryPlot(:, k) = X_H(:, stepForTrajectory);
                 if(buildLAOF)
                     Z_aofLForTrajectoryPlot(:, k) = Z_aofL(:, stepForTrajectory); 
                 end
@@ -1128,7 +1121,6 @@ classdef matlabFilters
 %             plot Sx, Seps, Crit
             SxToPlot = zeros(1, NX);
             Sx_RToPlot = zeros(1, NX);
-            Sx_HToPlot = zeros(1, NX);
             SeAofLToPlot = zeros(1, NX);
             SeFosLToPlot = zeros(1, NX);
             SeAofGToPlot = zeros(1, NX);
@@ -1149,7 +1141,6 @@ classdef matlabFilters
                 for i = 1:K
                     SxToPlot(i) = SxTable(j, 1, i);
                     Sx_RToPlot(i) = Sx_RTable(j, 1, i);
-                    Sx_HToPlot(i) = Sx_HTable(j, 1, i);
                     SeAofLToPlot(i) = Seps_aofLTable(j, 1, i);
                     SeFosLToPlot(i) = Seps_fosLTable(j, 1, i);
                     SeAofGToPlot(i) = Seps_aofGTable(j, 1, i);
@@ -1273,17 +1264,13 @@ classdef matlabFilters
                     plot(tToPlot.'.', XForTrajectoryPlot(j, :).');
                     hold on;
                     plot(tToPlot.'.', X_RForTrajectoryPlot(j, :).');
-                    hold on;
-                    plot(tToPlot.'.', X_HForTrajectoryPlot(j, :).');
-                    legend('X - trajectory', 'X_R - trajectory', 'X_H - trajectory');
+                    legend('X - trajectory', 'X_R - trajectory');
                     
                     subplot(2, 1, 2)
                     plot(tToPlot.', SxToPlot.');
                     hold on;
                     plot(tToPlot.', Sx_RToPlot.');
-                    hold on;
-                    plot(tToPlot.', Sx_HToPlot.');
-                    legend('Sx', 'Sx_R', 'Sx_H');
+                    legend('Sx', 'Sx_R');
                 end
                 
                 if(buildLAOF)
