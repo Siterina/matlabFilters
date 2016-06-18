@@ -22,7 +22,7 @@ function varargout = matlabFiltersGUI(varargin)
 
 % Edit the above text to modify the response to help matlabFiltersGUI
 
-% Last Modified by GUIDE v2.5 19-May-2016 00:52:07
+% Last Modified by GUIDE v2.5 10-Jun-2016 13:25:01
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -89,6 +89,8 @@ buildLFOS = true;
 buildGAOF = true;
 buildGFOS = true;
 buildMx = false;
+useEuler = true;
+useHun = false;
 
 if (get(handles.radioButtonCondition1,'Value') == 1)
     condition = 1;
@@ -120,12 +122,18 @@ end
 if(get(handles.checkBoxMx, 'Value') == 1)
     buildMx = true;
 end
+if(get(handles.checkBoxEuler, 'Value') == 0)
+    useEuler = false;
+end
+if(get(handles.checkBoxHun, 'Value') == 1)
+    useHun = true;
+end
 
 N = str2double(get(handles.editN, 'String'));
 K = str2double(get(handles.editK, 'String'));
 deltaTime = str2double(get(handles.editDeltaTime, 'String'));
 trajectoryNumber = str2double(get(handles.editTrajectoryNumber, 'String'));
-matlabFilters.main(condition, N, K, deltaTime, buildTrajectory, trajectoryNumber, buildLAOF, buildLFOS, buildGAOF, buildGFOS, buildMx);
+matlabFilters.main(condition, N, K, deltaTime, buildTrajectory, trajectoryNumber, buildLAOF, buildLFOS, buildGAOF, buildGFOS, buildMx, useEuler, useHun);
 
 
 
@@ -320,6 +328,8 @@ function radioButtonCondition2_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of radioButtonCondition2
 set(handles.checkBoxGAOF, 'Enable', 'on');
 set(handles.checkBoxGFOS, 'Enable', 'on');
+set(handles.checkBoxHun, 'Enable', 'off');
+set(handles.checkBoxHun, 'Value', 0);
 
 
 
@@ -332,6 +342,8 @@ function radioButtonCondition1_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of radioButtonCondition1
 set(handles.checkBoxGAOF, 'Enable', 'on');
 set(handles.checkBoxGFOS, 'Enable', 'on');
+set(handles.checkBoxHun, 'Enable', 'on');
+
 
 
 
@@ -346,6 +358,8 @@ set(handles.checkBoxGAOF, 'Enable', 'off');
 set(handles.checkBoxGFOS, 'Enable', 'off');
 set(handles.checkBoxGAOF, 'Value', 0);
 set(handles.checkBoxGFOS, 'Value', 0);
+set(handles.checkBoxHun, 'Enable', 'off');
+set(handles.checkBoxHun, 'Value', 0);
 
 
 % --- Executes on button press in radioButtonCondition4.
@@ -357,3 +371,23 @@ function radioButtonCondition4_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of radioButtonCondition4
 set(handles.checkBoxGAOF, 'Enable', 'on');
 set(handles.checkBoxGFOS, 'Enable', 'on');
+set(handles.checkBoxHun, 'Enable', 'off');
+set(handles.checkBoxHun, 'Value', 0);
+
+
+% --- Executes on button press in checkBoxHun.
+function checkBoxHun_Callback(hObject, eventdata, handles)
+% hObject    handle to checkBoxHun (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkBoxHun
+
+
+% --- Executes on button press in checkBoxEuler.
+function checkBoxEuler_Callback(hObject, eventdata, handles)
+% hObject    handle to checkBoxEuler (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of checkBoxEuler

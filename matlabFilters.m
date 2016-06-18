@@ -139,6 +139,14 @@ classdef matlabFilters
             end
         end
         
+        function [ Bx ] = Bx(t, x, condition) % B'x
+            global gamma;
+            if(condition == 1)
+                global b1cond1;
+                Bx = b1cond1*gamma;
+            end
+        end
+        
         function [ D ] = D(t, x, condition)
             global gamma;
             if(condition == 4)
@@ -180,6 +188,14 @@ classdef matlabFilters
                 global d0cond1;
                 global d1cond1;
                 D = (d0cond1 + d1cond1 * x)*gamma;
+            end
+        end
+        
+        function [ Dx ] = Dx(t, x, condition) %D'x
+            global gamma;          
+            if(condition == 1)
+                global d1cond1;
+                Dx = d1cond1*gamma;
             end
         end
         
@@ -375,6 +391,27 @@ classdef matlabFilters
                 matlabFilters.R(t, x, condition) * matlabFilters.K_hut(t, x, p, condition).';
         end
         
+        function [ Xi ] = Xi(t, x, p, condition) 
+            Xi = matlabFilters.K(t, x, p, condition);
+        end
+        
+        function [ Xiz ] = Xiz(t, x, p, condition) 
+            global d0cond1;
+            global d1cond1;
+            global c1cond1;
+            global c2cond1;
+            Xiz = p * (-2)*(-c2cond1*d0cond1+c2cond1*d1cond1*x+d1cond1*c1cond1)/(d0cond1+d1cond1*x)^3;
+        end
+        
+        function [ Zeta ] = Zeta(t, x, p, condition) 
+            Zeta = matlabFilters.a(t, x, condition) - matlabFilters.Xi(t, x, p, condition)*matlabFilters.c(t, x, condition);
+        end
+        
+        function [ Pi ] = Pi(t, x, z, p, condition) 
+            Pi = matlabFilters.Xi(t, z, p, condition)*matlabFilters.Dx(t, x, condition)*matlabFilters.B(t, x, condition) + ...
+                matlabFilters.D(t, x, condition)*matlabFilters.Xiz(t, z, p, condition)* ...
+                matlabFilters.Xi(t, z, p, condition)*matlabFilters.D(t, x, condition);
+        end
         
         % Support functions
         
@@ -516,7 +553,7 @@ classdef matlabFilters
 %             b1cond1 = 1;
 %             d0cond1 = 1;
 %             d1cond1 = 0;           
-
+% 
 %             MoXcond1 = 0.1;                                                     
 %             MoYcond1 = 0.0;
 %             SoXcond1 = 0.707;
@@ -567,7 +604,7 @@ classdef matlabFilters
         end
         
         
-        function[ ] = main(condition, N1, K1, deltaTime1, buildTrajectory, trajectoryNumber, buildLAOF, buildLFOS, buildGAOF, buildGFOS, buildMx)
+        function[ ] = main(condition, N1, K1, deltaTime1, buildTrajectory, trajectoryNumber, buildLAOF, buildLFOS, buildGAOF, buildGFOS, buildMx, useEuler, useHun)
             
             % Initial conditions
             global MoXcond1;
@@ -645,14 +682,23 @@ classdef matlabFilters
             X = ones(NX, N);
             X_R = ones(NX, N);
             X_H = ones(NX, N);
+            X_tilde = ones(NX, N);
             deltaY = ones(NY, N);
+            deltaY_H = ones(NY, N);
             Z_aofL = ones(NX, N);
             Z_fosL = ones(NX, N);
+            Z_aofL_H = ones(NX, N);
+            Z_fosL_H = ones(NX, N);
+            Z_fosL_H_tilde = ones(NX, N);
+            Z_aofL_H_tilde = ones(NX, N);
             Z_aofG = ones(NX, N);
             Z_fosG = ones(NX, N);
             P_L = ones(NX, NX, N);
+            P_L_H = ones(NX, NX, N);
+            P_L_H_tilde = ones(NX, NX, N);
             P_G = ones(NX, NX, N);
             J_L = ones(NX, NX, N);
+            J_L_tilde = ones(NX, NX, N);
             J_G = ones(NX, NX, N);
                       
             
@@ -722,11 +768,16 @@ classdef matlabFilters
                     X_H(:, i) = X(:, i);
                     Z_aofL(:, i) = normrnd(MoXcond1, SoZcond1);
                     Z_fosL(:, i) = Z_aofL(:, i);
+                    Z_aofL_H(:, i) = Z_aofL(:, i);
+                    Z_fosL_H(:, i) = Z_aofL(:, i);
                     Z_aofG(:, i) = Z_aofL(:, i);
                     Z_fosG(:, i) = Z_aofL(:, i);
                     P_L(:, :, i) = SoXcond1 * SoXcond1;
                     P_G(:, :, i) = P_L(:, :, i);
+                    P_L_H(:, :, i) = P_L(:, :, i);
+                    P_L_H_tilde(:, :, i) = P_L(:, :, i);
                     J_L(:, :, i) = P_L(:, :, i);
+                    J_L_tilde(:, :, i) = P_L(:, :, i);
                     J_G(:, :, i) = P_L(:, :, i);
                 end
             end
@@ -739,6 +790,10 @@ classdef matlabFilters
             Deps_aofL = matlabFilters.dispersion(X - Z_aofL, Meps_aofL, NX);
             Meps_fosL = matlabFilters.mathExpectation(X - Z_fosL, NX);
             Deps_fosL = matlabFilters.dispersion(X - Z_fosL, Meps_fosL, NX);
+            Meps_aofL_H = matlabFilters.mathExpectation(X - Z_aofL_H, NX);
+            Deps_aofL_H = matlabFilters.dispersion(X - Z_aofL_H, Meps_aofL_H, NX);
+            Meps_fosL_H = matlabFilters.mathExpectation(X - Z_fosL_H, NX);
+            Deps_fosL_H = matlabFilters.dispersion(X - Z_fosL_H, Meps_fosL_H, NX);
             Meps_aofG = matlabFilters.mathExpectation(X - Z_aofG, NX);
             Deps_aofG = matlabFilters.dispersion(X - Z_aofG, Meps_aofG, NX);
             Meps_fosG = matlabFilters.mathExpectation(X - Z_fosG, NX);
@@ -747,8 +802,12 @@ classdef matlabFilters
             Dx = matlabFilters.dispersion(X, Mx, NX);
             Dx_R = Dx;
             Dx_H = Dx;
+            Dx_H_tilde = Dx;
             Mz_fosL = matlabFilters.mathExpectation(Z_fosL, NX);
             Dz_fosL = matlabFilters.dispersion(Z_fosL, Mz_fosL, NX);
+            Mz_fosL_H = matlabFilters.mathExpectation(Z_fosL_H, NX);
+            Dz_fosL_H = matlabFilters.dispersion(Z_fosL_H, Mz_fosL_H, NX);
+            Dz_fosL_H_tilde = matlabFilters.dispersion(Z_fosL_H, Mz_fosL_H, NX);
             Mz_fosG = matlabFilters.mathExpectation(Z_fosG, NX);
             Dz_fosG = matlabFilters.dispersion(Z_fosG, Mz_fosG, NX);
             
@@ -758,9 +817,13 @@ classdef matlabFilters
             Sx_H = ones(NX, 1);
             Seps_aofL = ones(NX, 1);
             Crit_aofL = ones(NX, 1);
+            Seps_aofL_H = ones(NX, 1);
+            Crit_aofL_H = ones(NX, 1);
             %ICrit_aofL = ones(NX, 1);
             Seps_fosL = ones(NX, 1);
             Crit_fosL = ones(NX, 1);
+            Seps_fosL_H = ones(NX, 1);
+            Crit_fosL_H = ones(NX, 1);
            % ICrit_fosL = ones(NX, 1);
            Seps_aofG = ones(NX, 1);
             Crit_aofG = ones(NX, 1);
@@ -774,6 +837,10 @@ classdef matlabFilters
                 Crit_aofL(i) = Meps_aofL(i)*Meps_aofL(i) + Deps_aofL(i, i);
                 Seps_fosL(i) = sqrt(Deps_fosL(i, i));
                 Crit_fosL(i) = Meps_fosL(i)*Meps_fosL(i) + Deps_fosL(i, i);
+                Seps_aofL_H(i) = sqrt(Deps_aofL_H(i, i));
+                Crit_aofL_H(i) = Meps_aofL_H(i)*Meps_aofL_H(i) + Deps_aofL_H(i, i);
+                Seps_fosL_H(i) = sqrt(Deps_fosL_H(i, i));
+                Crit_fosL_H(i) = Meps_fosL_H(i)*Meps_fosL_H(i) + Deps_fosL_H(i, i);
                 Seps_aofG(i) = sqrt(Deps_aofG(i, i));
                 Crit_aofG(i) = Meps_aofG(i)*Meps_aofG(i) + Deps_aofG(i, i);
                 Seps_fosG(i) = sqrt(Deps_fosG(i, i));
@@ -781,14 +848,16 @@ classdef matlabFilters
             end
             ICrit_aofL = Crit_aofL;
             ICrit_fosL = Crit_fosL;
+            ICrit_aofL_H = Crit_aofL_H;
+            ICrit_fosL_H = Crit_fosL_H;
             ICrit_aofG = Crit_aofG;
             ICrit_fosG = Crit_fosG;
 
             MxTable(:, :, 1) = Mx;
-            Meps_aofLTable(:, :, 1) = Meps_aofL;
             SxTable(:, :, 1) = Sx;
             Sx_RTable(:, :, 1) = Sx;
             Sx_HTable(:, :, 1) = Sx;
+            Meps_aofLTable(:, :, 1) = Meps_aofL;
             Seps_aofLTable(:, :, 1) = Seps_aofL;              
             Crit_aofLTable(:, :, 1) = Crit_aofL;
             ICrit_aofLTable(:, :, 1) = ICrit_aofL;   
@@ -796,6 +865,14 @@ classdef matlabFilters
             Seps_fosLTable(:, :, 1) = Seps_fosL;              
             Crit_fosLTable(:, :, 1) = Crit_fosL;
             ICrit_fosLTable(:, :, 1) = ICrit_fosL;
+            Meps_aofL_HTable(:, :, 1) = Meps_aofL_H;
+            Seps_aofL_HTable(:, :, 1) = Seps_aofL_H;              
+            Crit_aofL_HTable(:, :, 1) = Crit_aofL_H;
+            ICrit_aofL_HTable(:, :, 1) = ICrit_aofL_H;   
+            Meps_fosL_HTable(:, :, 1) = Meps_fosL_H;
+            Seps_fosL_HTable(:, :, 1) = Seps_fosL_H;              
+            Crit_fosL_HTable(:, :, 1) = Crit_fosL_H;
+            ICrit_fosL_HTable(:, :, 1) = ICrit_fosL_H;
             Meps_aofGTable(:, :, 1) = Meps_aofG;
             Seps_aofGTable(:, :, 1) = Seps_aofG;              
             Crit_aofGTable(:, :, 1) = Crit_aofG;
@@ -847,58 +924,111 @@ classdef matlabFilters
                     deltaY(:, i) = matlabFilters.c(t, X(:, i), condition)*deltaTime + ...
                         matlabFilters.D(t, X(:, i), condition)*deltaV(:, 2, i); 
                     
-                    % Райт
-                    % B' = b1
-                    if(condition == 1)
-                        global b1cond1;
-                        f = matlabFilters.a(t, X(:, i), condition) - 1/2 * matlabFilters.B(t, X(:, i), condition)*b1cond1;
-                        X_R(:, i) = X_R(:, i) + f*deltaTime + (1 + 1/2*deltaV(:, 1, i)*b1cond1)*...
-                        matlabFilters.B(t, X(:, i), condition)*deltaV(:, 1, i);
-
                     % Хьюн
+                    if(condition == 1 && useHun)
                         fi = matlabFilters.a(t, X(:, i), condition) * deltaTime + ...
                             matlabFilters.B(t, X(:, i), condition)*deltaV(:, 1, i);
-                      
-                        f = matlabFilters.a(t+deltaTime, X(:, i) + fi, condition) - ...
-                            1/2 * matlabFilters.B(t+deltaTime, X(:, i) + fi, condition)*b1cond1;
                         
-                        psi = f*deltaTime + matlabFilters.B(t+deltaTime, X(:, i) + fi, condition)*deltaV(:, 1, i);
+                        fi_y = matlabFilters.c(t, X(:, i), condition) * deltaTime + ...
+                            matlabFilters.D(t, X(:, i), condition)*deltaV(:, 2, i);
                         
-                        X_H(:, i) = X_H(:, i) + 1/2*(fi + psi) + deltaTime/4 * b1cond1 * matlabFilters.B(t, X(:, i), condition);
+                        t_tilde = t + deltaTime;
+                        
+                        X_tilde(:, i) = X(:, i) + fi;
+                                                
+                        psi = (matlabFilters.a(t_tilde, X_tilde(:, i), condition) - ...
+                            1/2*matlabFilters.Bx(t_tilde, X_tilde(:, i), condition) * matlabFilters.B(t_tilde, X_tilde(:, i), condition)) * deltaTime + ...
+                            matlabFilters.B(t_tilde, X_tilde(:, i), condition)*deltaV(:, 1, i);
+                        
+                        psi_y = (matlabFilters.c(t_tilde, X_tilde(:, i), condition) - ...
+                            1/2*matlabFilters.Dx(t_tilde, X_tilde(:, i), condition) * matlabFilters.B(t_tilde, X_tilde(:, i), condition)) * deltaTime + ...
+                            matlabFilters.D(t_tilde, X_tilde(:, i), condition)*deltaV(:, 1, i);
+                        
+                        X_H(:, i) = X_H(:, i) + 1/2*(fi + psi - 1/2 * matlabFilters.Bx(t, X(:, i), condition) * matlabFilters.B(t, X(:, i), condition)*deltaTime);
+                        
+                        deltaY_H(:, i) = 1/2*(fi_y + psi_y - 1/2 * matlabFilters.Dx(t, X(:, i), condition) * matlabFilters.B(t, X(:, i), condition)*deltaTime);
+                        
+                        
+                        if(buildLAOF)
+                            fi_z = matlabFilters.Zeta(t, Z_aofL_H(:, i), P_L_H(:, :, i), condition)*deltaTime + ...
+                                matlabFilters.Xi(t, Z_aofL_H(:, i), P_L_H(:, :, i), condition) * fi_y;
+                            
+                            Z_aofL_H_tilde(:, i) = Z_aofL_H(:, i) + fi_z;
+                            
+                            fi_p = matlabFilters.Ksi(t, Z_aofL_H(:, i), P_L_H(:, :, i), condition);
+                            
+                            P_L_H_tilde(:, :, i) = P_L_H(:, :, i) + fi_p;
+                            
+                            psi_z = (matlabFilters.Zeta(t_tilde, Z_aofL_H_tilde(:, i), P_L_H_tilde(:, :, i), condition) - ...
+                                1/2*matlabFilters.Pi(t_tilde, X_tilde(:, i), Z_aofL_H_tilde(:, i), P_L_H_tilde(:, :, i), condition))*deltaTime + ...
+                                matlabFilters.Xi(t_tilde, Z_aofL_H_tilde(:, i), P_L_H_tilde(:, :, i), condition) * ...
+                                (deltaY_H(:, i) - 1/2 * matlabFilters.Dx(t_tilde, X_tilde(:, i), condition) * ...
+                                matlabFilters.B(t_tilde, X_tilde(:, i), condition)*deltaTime);
+                            
+                            Z_aofL_H(:, i) = Z_aofL_H(:, i) + 1/2*(fi_z + psi_z - 1/2 * ...
+                                matlabFilters.Pi(t, X(:, i), Z_aofL_H(:, i), P_L_H(:, :, i),condition)*deltaTime);
+                            
+                            psi_p = matlabFilters.Ksi(t_tilde, Z_aofL_H_tilde(:, i), P_L_H_tilde(:, :, i), condition);
+                            
+                            P_L_H(:, :, i) = P_L_H(:, :, i) + 1/2*(fi_p + psi_p);
+                            
+                        end
+                        
+                        if(buildLFOS)
+                            J_L(:, :, i) = Dx_H - Dz_fosL_H;
+                            J_L_tilde(:, :, i) = Dx_H_tilde - Dz_fosL_H_tilde;
+                            
+                            fi_z = matlabFilters.Zeta(t, Z_fosL_H(:, i), J_L(:, :, i), condition)*deltaTime + ...
+                                matlabFilters.Xi(t, Z_fosL_H(:, i), J_L(:, :, i), condition) * fi_y;
+                            
+                            Z_fosL_H_tilde(:, i) = Z_fosL_H(:, i) + fi_z;
+                            
+                            psi_z = (matlabFilters.Zeta(t_tilde, Z_fosL_H_tilde(:, i), J_L_tilde(:, :, i), condition) - ...
+                                1/2*matlabFilters.Pi(t_tilde, X_tilde(:, i), Z_fosL_H_tilde(:, i), J_L_tilde(:, :, i), condition))*deltaTime + ...
+                                matlabFilters.Xi(t_tilde, Z_fosL_H_tilde(:, i), J_L_tilde(:, :, i), condition) * ...
+                                (deltaY_H(:, i) - 1/2 * matlabFilters.Dx(t_tilde, X_tilde(:, i), condition) * ...
+                                matlabFilters.B(t_tilde, X_tilde(:, i), condition)*deltaTime);
+                            
+                            Z_fosL_H(:, i) = Z_fosL_H(:, i) + 1/2*(fi_z + psi_z - 1/2 * ...
+                                matlabFilters.Pi(t, X(:, i), Z_fosL_H(:, i), J_L(:, :, i),condition)*deltaTime);
+                        end
+                        
                     end
                     
-                    if(buildLAOF)
-                        Z_aofL(:, i) = Z_aofL(:, i) + matlabFilters.a(t, Z_aofL(:, i), condition)*deltaTime + ...
-                            matlabFilters.K(t, Z_aofL(:, i), P_L(:, :, i), condition)*(deltaY(:, i) - ...
-                            matlabFilters.c(t, Z_aofL(:, i), condition)*deltaTime);
-                        P_L(:, :, i) = P_L(:, :, i) +  matlabFilters.Ksi(t, Z_aofL(:, i), P_L(:, :, i), condition)*deltaTime;
-                    end
-                    
-                    
-                    if(buildLFOS)
-                        Z_fosL(:, i) = Z_fosL(:, i) + matlabFilters.a(t, Z_fosL(:, i), condition)*deltaTime + ...
-                            matlabFilters.K(t, Z_fosL(:, i), J_L(:, :, i), condition)*(deltaY(:, i) - ...
-                            matlabFilters.c(t, Z_fosL(:, i), condition)*deltaTime);
+                    if(useEuler)
+                        if(buildLAOF)
+                            Z_aofL(:, i) = Z_aofL(:, i) + matlabFilters.a(t, Z_aofL(:, i), condition)*deltaTime + ...
+                                matlabFilters.K(t, Z_aofL(:, i), P_L(:, :, i), condition)*(deltaY(:, i) - ...
+                                matlabFilters.c(t, Z_aofL(:, i), condition)*deltaTime);
+                            P_L(:, :, i) = P_L(:, :, i) +  matlabFilters.Ksi(t, Z_aofL(:, i), P_L(:, :, i), condition)*deltaTime;
+                        end
 
-                         J_L(:, :, i) = Dx - Dz_fosL;
-                    end
-                    
-                   if(buildGAOF)
-                        Z_aofG(:, i) = Z_aofG(:, i) + matlabFilters.a_hut(t, Z_aofG(:, i), P_G(:, :, i), condition)*deltaTime + ...
-                            matlabFilters.K_hut(t, Z_aofG(:, i), P_G(:, :, i), condition)*(deltaY(:, i) - ...
-                            matlabFilters.c_hut(t, Z_aofG(:, i), P_G(:, :, i), condition)*deltaTime);
 
-                        P_G(:, :, i) = P_G(:, :, i) +  matlabFilters.Ksi_hut(t, Z_aofG(:, i), P_G(:, :, i), condition)*deltaTime + ...
-                            matlabFilters.R(t, Z_aofG(:, i), condition)* (deltaY(:, i) - matlabFilters.c_hut(t, Z_aofG(:, i), P_G(:, :, i), condition) * deltaTime) ...
-                            * matlabFilters.Theta(t, Z_aofG(:, i), P_G(:, :, i), condition);
-                   end
-                    
-                   if(buildGFOS)
-                        Z_fosG(:, i) = Z_fosG(:, i) + matlabFilters.a_hut(t, Z_fosG(:, i), J_G(:, :, i), condition)*deltaTime + ...
-                            matlabFilters.K_hut(t, Z_fosG(:, i), J_G(:, :, i), condition)*(deltaY(:, i) - ...
-                            matlabFilters.c_hut(t, Z_fosG(:, i), J_G(:, :, i), condition)*deltaTime);
+                        if(buildLFOS)
+                            Z_fosL(:, i) = Z_fosL(:, i) + matlabFilters.a(t, Z_fosL(:, i), condition)*deltaTime + ...
+                                matlabFilters.K(t, Z_fosL(:, i), J_L(:, :, i), condition)*(deltaY(:, i) - ...
+                                matlabFilters.c(t, Z_fosL(:, i), condition)*deltaTime);
 
-                         J_G(:, :, i) = Dx - Dz_fosG;
+                             J_L(:, :, i) = Dx - Dz_fosL;
+                        end
+
+                       if(buildGAOF)
+                            Z_aofG(:, i) = Z_aofG(:, i) + matlabFilters.a_hut(t, Z_aofG(:, i), P_G(:, :, i), condition)*deltaTime + ...
+                                matlabFilters.K_hut(t, Z_aofG(:, i), P_G(:, :, i), condition)*(deltaY(:, i) - ...
+                                matlabFilters.c_hut(t, Z_aofG(:, i), P_G(:, :, i), condition)*deltaTime);
+
+                            P_G(:, :, i) = P_G(:, :, i) +  matlabFilters.Ksi_hut(t, Z_aofG(:, i), P_G(:, :, i), condition)*deltaTime + ...
+                                matlabFilters.R(t, Z_aofG(:, i), condition)* (deltaY(:, i) - matlabFilters.c_hut(t, Z_aofG(:, i), P_G(:, :, i), condition) * deltaTime) ...
+                                * matlabFilters.Theta(t, Z_aofG(:, i), P_G(:, :, i), condition);
+                       end
+
+                       if(buildGFOS)
+                            Z_fosG(:, i) = Z_fosG(:, i) + matlabFilters.a_hut(t, Z_fosG(:, i), J_G(:, :, i), condition)*deltaTime + ...
+                                matlabFilters.K_hut(t, Z_fosG(:, i), J_G(:, :, i), condition)*(deltaY(:, i) - ...
+                                matlabFilters.c_hut(t, Z_fosG(:, i), J_G(:, :, i), condition)*deltaTime);
+
+                             J_G(:, :, i) = Dx - Dz_fosG;
+                       end
                     end
                          
                 end
@@ -917,16 +1047,27 @@ classdef matlabFilters
                 
                 Mx_H = matlabFilters.mathExpectation(X_H, NX);
                 Dx_H = matlabFilters.dispersion(X_H, Mx_H, NX);
+                
+                Mx_H_tilde = matlabFilters.mathExpectation(X_tilde, NX);
+                Dx_H_tilde = matlabFilters.dispersion(X_tilde, Mx_H_tilde, NX);
     
                 if(buildLAOF)
                     Meps_aofL = matlabFilters.mathExpectation(X - Z_aofL, NX);
                     Deps_aofL = matlabFilters.dispersion(X - Z_aofL, Meps_aofL, NX);
+                    Meps_aofL_H = matlabFilters.mathExpectation(X - Z_aofL_H, NX);
+                    Deps_aofL_H = matlabFilters.dispersion(X - Z_aofL_H, Meps_aofL_H, NX);
                 end
                 if(buildLFOS)
                     Meps_fosL = matlabFilters.mathExpectation(X - Z_fosL, NX);
                     Deps_fosL = matlabFilters.dispersion(X - Z_fosL, Meps_fosL, NX);
                     Mz_fosL = matlabFilters.mathExpectation(Z_fosL, NX);
                     Dz_fosL = matlabFilters.dispersion(Z_fosL, Mz_fosL, NX);
+                    Meps_fosL_H = matlabFilters.mathExpectation(X - Z_fosL_H, NX);
+                    Deps_fosL_H = matlabFilters.dispersion(X - Z_fosL_H, Meps_fosL_H, NX);
+                    Mz_fosL_H = matlabFilters.mathExpectation(Z_fosL_H, NX);
+                    Dz_fosL_H = matlabFilters.dispersion(Z_fosL_H, Mz_fosL_H, NX);
+                    Mz_fosL_H_tilde = matlabFilters.mathExpectation(Z_fosL_H_tilde, NX);
+                    Dz_fosL_H_tilde = matlabFilters.dispersion(Z_fosL_H_tilde, Mz_fosL_H_tilde, NX);
                 end
                 if(buildGAOF)
                     Meps_aofG = matlabFilters.mathExpectation(X - Z_aofG, NX);
@@ -962,10 +1103,14 @@ classdef matlabFilters
                     if(buildLAOF)
                         Seps_aofL(i) = sqrt(Deps_aofL(i, i));
                         Crit_aofL(i) = Meps_aofL(i)*Meps_aofL(i) + Deps_aofL(i,i);
+                        Seps_aofL_H(i) = sqrt(Deps_aofL_H(i, i));
+                        Crit_aofL_H(i) = Meps_aofL_H(i)*Meps_aofL_H(i) + Deps_aofL_H(i,i);
                     end
                     if(buildLFOS)
                         Seps_fosL(i) = sqrt(Deps_fosL(i, i));
                         Crit_fosL(i) = Meps_fosL(i)*Meps_fosL(i) + Deps_fosL(i,i);
+                        Seps_fosL_H(i) = sqrt(Deps_fosL_H(i, i));
+                        Crit_fosL_H(i) = Meps_fosL_H(i)*Meps_fosL_H(i) + Deps_fosL_H(i,i);
                     end
                     if(buildGAOF)
                         Seps_aofG(i) = sqrt(Deps_aofG(i, i));
@@ -978,9 +1123,11 @@ classdef matlabFilters
                 end   
                 if(buildLAOF)
                     ICrit_aofL = ICrit_aofLTable(:, :, k-1) + (Crit_aofL - ICrit_aofLTable(:, :, k-1)) / k;
+                    ICrit_aofL_H = ICrit_aofL_HTable(:, :, k-1) + (Crit_aofL_H - ICrit_aofL_HTable(:, :, k-1)) / k;
                 end
                 if(buildLFOS)
                     ICrit_fosL = ICrit_fosLTable(:, :, k-1) + (Crit_fosL - ICrit_fosLTable(:, :, k-1)) / k;
+                    ICrit_fosL_H = ICrit_fosL_HTable(:, :, k-1) + (Crit_fosL_H - ICrit_fosL_HTable(:, :, k-1)) / k;
                 end
                 if(buildGAOF)
                     ICrit_aofG = ICrit_aofGTable(:, :, k-1) + (Crit_aofG - ICrit_aofGTable(:, :, k-1)) / k;
@@ -990,17 +1137,25 @@ classdef matlabFilters
                 end
                 
                 MxTable(:, :, k) = Mx;
-                Meps_aofLTable(:, :, k) = Meps_aofL;
                 SxTable(:, :, k) = Sx;
                 Sx_RTable(:, :, k) = Sx_R;
                 Sx_HTable(:, :, k) = Sx_H;
+                Meps_aofLTable(:, :, k) = Meps_aofL;
                 Seps_aofLTable(:, :, k) = Seps_aofL;                
                 Crit_aofLTable(:, :, k) = Crit_aofL;
                 ICrit_aofLTable(:, :, k) = ICrit_aofL;
                 Meps_fosLTable(:, :, k) = Meps_fosL;
                 Seps_fosLTable(:, :, k) = Seps_fosL;                
                 Crit_fosLTable(:, :, k) = Crit_fosL;
-                ICrit_fosLTable(:, :, k) = ICrit_fosL;   
+                ICrit_fosLTable(:, :, k) = ICrit_fosL;
+                Meps_aofL_HTable(:, :, k) = Meps_aofL_H;
+                Seps_aofL_HTable(:, :, k) = Seps_aofL_H;                
+                Crit_aofL_HTable(:, :, k) = Crit_aofL_H;
+                ICrit_aofL_HTable(:, :, k) = ICrit_aofL_H;
+                Meps_fosL_HTable(:, :, k) = Meps_fosL_H;
+                Seps_fosL_HTable(:, :, k) = Seps_fosL_H;                
+                Crit_fosL_HTable(:, :, k) = Crit_fosL_H;
+                ICrit_fosL_HTable(:, :, k) = ICrit_fosL_H;   
                 Meps_aofGTable(:, :, k) = Meps_aofG;
                 Seps_aofGTable(:, :, k) = Seps_aofG;                
                 Crit_aofGTable(:, :, k) = Crit_aofG;
@@ -1131,6 +1286,8 @@ classdef matlabFilters
             Sx_HToPlot = zeros(1, NX);
             SeAofLToPlot = zeros(1, NX);
             SeFosLToPlot = zeros(1, NX);
+            SeAofL_HToPlot = zeros(1, NX);
+            SeFosL_HToPlot = zeros(1, NX);
             SeAofGToPlot = zeros(1, NX);
             SeFosGToPlot = zeros(1, NX);
 %             sqrtCrit_aofLToPlot = zeros(1, NX);
@@ -1144,7 +1301,7 @@ classdef matlabFilters
             MeFosGToPlot = zeros(1, NX);
             tToPlot = zeros(1, NX);
             
-            figure('name', 'Sx, Se');
+            
             for j = 1:NX
                 for i = 1:K
                     SxToPlot(i) = SxTable(j, 1, i);
@@ -1152,6 +1309,8 @@ classdef matlabFilters
                     Sx_HToPlot(i) = Sx_HTable(j, 1, i);
                     SeAofLToPlot(i) = Seps_aofLTable(j, 1, i);
                     SeFosLToPlot(i) = Seps_fosLTable(j, 1, i);
+                    SeAofL_HToPlot(i) = Seps_aofL_HTable(j, 1, i);
+                    SeFosL_HToPlot(i) = Seps_fosL_HTable(j, 1, i);
                     SeAofGToPlot(i) = Seps_aofGTable(j, 1, i);
                     SeFosGToPlot(i) = Seps_fosGTable(j, 1, i);
 %                     sqrtCrit_aofLToPlot(i) = sqrt(Crit_aofLTable(j, 1, i));
@@ -1163,9 +1322,9 @@ classdef matlabFilters
                 end               
                 if(condition == 3) 
                     if(j == 2)
-                        SxToPlot = SxToPlot*180/pi;
-                        SeAofLToPlot = SeAofLToPlot*180/pi;
-                        SeFosLToPlot = SeFosLToPlot*180/pi;
+%                         SxToPlot = SxToPlot*180/pi;
+%                         SeAofLToPlot = SeAofLToPlot*180/pi;
+%                         SeFosLToPlot = SeFosLToPlot*180/pi;
                     else
                         SxToPlot = SxToPlot;
                         SeAofLToPlot = SeAofLToPlot;
@@ -1173,118 +1332,205 @@ classdef matlabFilters
                     end
                 end
 
-                subplot(NX,1,j);
-                plot(tToPlot.', SxToPlot.');
-                hold on;
-                if(buildLAOF)
-                    plot(tToPlot.', SeAofLToPlot.', 'o-', 'color', [240, 110, 50]/255);
-                    hold on;
-                end
+%                 subplot(NX,1,j);
+%                 plot(tToPlot.', SxToPlot.');
+%                 hold on;
+%                 if(buildLAOF)
+%                     plot(tToPlot.', SeAofLToPlot.', 'o-', 'color', [240, 110, 50]/255);
+%                     hold on;
+%                 end
+% 
+%                 if(buildLFOS)
+%                     plot(tToPlot.', SeFosLToPlot.', 'kx--');
+%                     hold on;
+%                 end
+%                 
+%                 if(buildGAOF)
+%                     plot(tToPlot.', SeAofGToPlot.', '*-', 'color', [200, 180, 10]/255);
+%                     hold on;
+%                 end
+%                 
+%                 if(buildGFOS)
+%                     plot(tToPlot.', SeFosGToPlot.', 's--', 'color', [0, 175, 250]/255);
+%                     hold on;
+%                 end
 
-                if(buildLFOS)
-                    plot(tToPlot.', SeFosLToPlot.', 'kx--');
-                    hold on;
-                end
-                
-                if(buildGAOF)
-                    plot(tToPlot.', SeAofGToPlot.', '*-', 'color', [200, 180, 10]/255);
-                    hold on;
-                end
-                
-                if(buildGFOS)
-                    plot(tToPlot.', SeFosGToPlot.', 's--', 'color', [0, 175, 250]/255);
-                    hold on;
-                end
-                
-%                 plot(tToPlot.', sqrtCrit_aofLToPlot.', 'color', [0, 110, 50]/255);
-%                 plot(tToPlot.', sqrtCrit_fosLToPlot.', 'color', [200, 180, 10]/255);
-                
-                % legend format
-                if(buildLAOF && buildLFOS && buildGAOF && buildGFOS)
-                    legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' AOF-L'), strcat('Se', int2str(j), ' FOS-L'), strcat('Se', int2str(j), ' AOF-G'), strcat('Se', int2str(j), ' FOS-G'));
-                end
-                if(buildLAOF && buildLFOS && buildGAOF && ~buildGFOS)
-                    legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' AOF-L'), strcat('Se', int2str(j), ' FOS-L'), strcat('Se', int2str(j), ' AOF-G'));
-                end
-                if(buildLAOF && buildLFOS && ~buildGAOF && buildGFOS)
-                    legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' AOF-L'), strcat('Se', int2str(j), ' FOS-L'), strcat('Se', int2str(j), ' FOS-G'));
-                end
-                if(buildLAOF && buildLFOS && ~buildGAOF && ~buildGFOS)
-                    legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' AOF-L'), strcat('Se', int2str(j), ' FOS-L'));
-                end
-                if(buildLAOF && ~buildLFOS && buildGAOF && buildGFOS)
-                    legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' AOF-L'), strcat('Se', int2str(j), ' AOF-G'), strcat('Se', int2str(j), ' FOS-G'));
-                end
-                if(buildLAOF && ~buildLFOS && buildGAOF && ~buildGFOS)
-                    legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' AOF-L'), strcat('Se', int2str(j), ' AOF-G'));
-                end
-                if(buildLAOF && ~buildLFOS && ~buildGAOF && buildGFOS)
-                    legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' AOF-L'), strcat('Se', int2str(j), ' FOS-G'));
-                end
-                if(buildLAOF && ~buildLFOS && ~buildGAOF && ~buildGFOS)
-                    legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' AOF-L'));
-                end
-                if(~buildLAOF && buildLFOS && buildGAOF && buildGFOS)
-                    legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' FOS-L'), strcat('Se', int2str(j), ' AOF-G'), strcat('Se', int2str(j), ' FOS-G'));
-                end
-                if(~buildLAOF && buildLFOS && buildGAOF && ~buildGFOS)
-                    legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' FOS-L'), strcat('Se', int2str(j), ' AOF-G'));
-                end
-                if(~buildLAOF && buildLFOS && ~buildGAOF && buildGFOS)
-                    legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' FOS-L'), strcat('Se', int2str(j), ' FOS-G'));
-                end
-                if(~buildLAOF && buildLFOS && ~buildGAOF && ~buildGFOS)
-                    legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' FOS-L'));
-                end
-                if(~buildLAOF && ~buildLFOS && buildGAOF && buildGFOS)
-                    legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' AOF-G'), strcat('Se', int2str(j), ' FOS-G'));
-                end
-                if(~buildLAOF && ~buildLFOS && buildGAOF && ~buildGFOS)
-                    legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' AOF-G'));
-                end
-                if(~buildLAOF && ~buildLFOS && ~buildGAOF && buildGFOS)
-                    legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' FOS-G'));
-                end
-                if(~buildLAOF && ~buildLFOS && ~buildGAOF && ~buildGFOS)
-                    legend(strcat('Sx', int2str(j)));
-                end
-
-                if(condition == 1)
-                    str = 'Скалярный пример: ';
-                end
-                if(condition == 2)
-                    str = 'Осциллятор Ван-дер-Поля: ';
-                end
-                if(condition == 3)
-                    str = 'Спуск ЛА на планету: ';
-                end
-                if(condition == 4)
-                    str = 'Тригонометрический пример: ';
-                end
-                title(['\fontsize{20}', str, ' N=', int2str(N), ', deltaTime=', num2str(deltaTime), '. ']);
-                xlabel('t'); 
-            end     
-           
-                        
-            % plot trajectory 
-            if(buildTrajectory)
-                if(condition == 1)
-                    subplot(2, 1, 1)
-                    plot(tToPlot.'.', XForTrajectoryPlot(j, :).');
-                    hold on;
-                    plot(tToPlot.'.', X_RForTrajectoryPlot(j, :).');
-                    hold on;
-                    plot(tToPlot.'.', X_HForTrajectoryPlot(j, :).');
-                    legend('X - trajectory', 'X_R - trajectory', 'X_H - trajectory');
-                    
-                    subplot(2, 1, 2)
+                if(useEuler)
+                    figure('name', 'Sx, Se');
+                    subplot(1,NX,j);
                     plot(tToPlot.', SxToPlot.');
                     hold on;
-                    plot(tToPlot.', Sx_RToPlot.');
-                    hold on;
-                    plot(tToPlot.', Sx_HToPlot.');
-                    legend('Sx', 'Sx_R', 'Sx_H');
+                    if(buildLAOF)
+                        plot(tToPlot.', SeAofLToPlot.', 'o-', 'color', [240, 110, 50]/255);
+                        hold on;
+                    end
+
+                    if(buildLFOS)
+                        plot(tToPlot.', SeFosLToPlot.', 'kx--');
+                        hold on;
+                    end
+
+                    if(buildGAOF)
+                        plot(tToPlot.', SeAofGToPlot.', '*-', 'color', [200, 180, 10]/255);
+                        hold on;
+                    end
+
+                    if(buildGFOS)
+                        plot(tToPlot.', SeFosGToPlot.', 's--', 'color', [0, 175, 250]/255);
+                        hold on;
+                    end
+
+    %                 plot(tToPlot.', sqrtCrit_aofLToPlot.', 'color', [0, 110, 50]/255);
+    %                 plot(tToPlot.', sqrtCrit_fosLToPlot.', 'color', [200, 180, 10]/255);
+
+                    % legend format
+                    if(buildLAOF && buildLFOS && buildGAOF && buildGFOS)
+                        legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' AOF-L'), strcat('Se', int2str(j), ' FOS-L'), strcat('Se', int2str(j), ' AOF-G'), strcat('Se', int2str(j), ' FOS-G'));
+                    end
+                    if(buildLAOF && buildLFOS && buildGAOF && ~buildGFOS)
+                        legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' AOF-L'), strcat('Se', int2str(j), ' FOS-L'), strcat('Se', int2str(j), ' AOF-G'));
+                    end
+                    if(buildLAOF && buildLFOS && ~buildGAOF && buildGFOS)
+                        legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' AOF-L'), strcat('Se', int2str(j), ' FOS-L'), strcat('Se', int2str(j), ' FOS-G'));
+                    end
+                    if(buildLAOF && buildLFOS && ~buildGAOF && ~buildGFOS)
+                        legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' AOF-L'), strcat('Se', int2str(j), ' FOS-L'));
+                    end
+                    if(buildLAOF && ~buildLFOS && buildGAOF && buildGFOS)
+                        legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' AOF-L'), strcat('Se', int2str(j), ' AOF-G'), strcat('Se', int2str(j), ' FOS-G'));
+                    end
+                    if(buildLAOF && ~buildLFOS && buildGAOF && ~buildGFOS)
+                        legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' AOF-L'), strcat('Se', int2str(j), ' AOF-G'));
+                    end
+                    if(buildLAOF && ~buildLFOS && ~buildGAOF && buildGFOS)
+                        legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' AOF-L'), strcat('Se', int2str(j), ' FOS-G'));
+                    end
+                    if(buildLAOF && ~buildLFOS && ~buildGAOF && ~buildGFOS)
+                        legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' AOF-L'));
+                    end
+                    if(~buildLAOF && buildLFOS && buildGAOF && buildGFOS)
+                        legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' FOS-L'), strcat('Se', int2str(j), ' AOF-G'), strcat('Se', int2str(j), ' FOS-G'));
+                    end
+                    if(~buildLAOF && buildLFOS && buildGAOF && ~buildGFOS)
+                        legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' FOS-L'), strcat('Se', int2str(j), ' AOF-G'));
+                    end
+                    if(~buildLAOF && buildLFOS && ~buildGAOF && buildGFOS)
+                        legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' FOS-L'), strcat('Se', int2str(j), ' FOS-G'));
+                    end
+                    if(~buildLAOF && buildLFOS && ~buildGAOF && ~buildGFOS)
+                        legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' FOS-L'));
+                    end
+                    if(~buildLAOF && ~buildLFOS && buildGAOF && buildGFOS)
+                        legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' AOF-G'), strcat('Se', int2str(j), ' FOS-G'));
+                    end
+                    if(~buildLAOF && ~buildLFOS && buildGAOF && ~buildGFOS)
+                        legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' AOF-G'));
+                    end
+                    if(~buildLAOF && ~buildLFOS && ~buildGAOF && buildGFOS)
+                        legend(strcat('Sx', int2str(j)), strcat('Se', int2str(j), ' FOS-G'));
+                    end
+                    if(~buildLAOF && ~buildLFOS && ~buildGAOF && ~buildGFOS)
+                        legend(strcat('Sx', int2str(j)));
+                    end
+
+                    if(condition == 1)
+                        str = 'Полиномиальный пример: ';
+                    end
+                    if(condition == 2)
+                        str = 'Осциллятор Ван-дер-Поля: ';
+                    end
+                    if(condition == 3)
+                        str = 'Спуск: ';
+                    end
+                    if(condition == 4)
+                        str = 'Тригонометрический пример: ';
+                    end
+                    title(['\fontsize{20}', str, ' N=', int2str(N), ', deltaTime=', num2str(deltaTime), '. ']);
+                    xlabel('t'); 
                 end
+                
+                
+                if(useHun)
+                    figure('name', 'Sx_H, Se_H');
+                    subplot(1,NX,j);
+                    plot(tToPlot.', Sx_HToPlot.');
+                    hold on;
+                    if(buildLAOF)
+                        plot(tToPlot.', SeAofL_HToPlot.', 'o-', 'color', [240, 110, 50]/255);
+                        hold on;
+                    end
+
+                    if(buildLFOS)
+                        plot(tToPlot.', SeFosL_HToPlot.', 'kx--');
+                        hold on;
+                    end
+
+                    % legend format
+                    if(buildLAOF && buildLFOS)
+                        legend('Sx_H', 'Se_H AOF-L', 'Se_H FOS-L');
+                    end
+                    if(buildLAOF && ~buildLFOS)
+                        legend('Sx_H', 'Se_H AOF-L');
+                    end
+                    if(~buildLAOF && buildLFOS)
+                        legend('Sx_H', 'Se_H FOS-L');
+                    end
+                    if(~buildLAOF && ~buildLFOS)
+                        legend('Sx_H');
+                    end
+
+                    str = 'Полиномиальный пример: ';
+
+                    title(['\fontsize{20}', str, ' N=', int2str(N), ', deltaTime=', num2str(deltaTime), '. ']);
+                    xlabel('t'); 
+                end
+                
+            end     
+               
+            
+            
+            if(useEuler && useHun)
+                figure('name', 'Sx-Sx_H, Se-Se_H');
+
+                plot(tToPlot.', SxToPlot.', '*-');
+                hold on;
+                plot(tToPlot.', Sx_HToPlot.', 's--');
+                hold on;
+                if(buildLAOF)
+                    plot(tToPlot.', SeAofLToPlot.');
+                    hold on;
+                    plot(tToPlot.', SeAofL_HToPlot.');
+                    hold on;
+                end
+                if(buildLFOS)
+                    plot(tToPlot.', SeFosLToPlot.', 'x-');
+                    hold on;
+                    plot(tToPlot.', SeFosL_HToPlot.', 'o--');
+                end
+                if(buildLAOF && buildLFOS)
+                    legend('Sx', 'Sx_H', 'Se AOF-L', 'Se_H AOF-L', 'Se FOS-L', 'Se_H FOS-L');
+                end
+                if(~buildLAOF && buildLFOS)
+                    legend('Sx', 'Sx_H', 'Se FOS-L', 'Se_H FOS-L');
+                end
+                if(buildLAOF && ~buildLFOS)
+                    legend('Sx', 'Sx_H', 'Se AOF-L', 'Se_H AOF-L');
+                end
+                if(~buildLAOF && ~buildLFOS)
+                    legend('Sx', 'Sx_H');
+                end
+                 str = 'Полиномиальный пример: ';
+
+                 title(['\fontsize{20}', str, ' N=', int2str(N), ', deltaTime=', num2str(deltaTime), '. ']);
+%                     
+            end
+            
+            
+            
+            
+            
+            % plot trajectory 
+            if(buildTrajectory)
                 
                 if(buildLAOF)
                     figure('name', 'trajectory: X(t), Z(t) AOF-L and confidence interval');
@@ -1440,22 +1686,22 @@ classdef matlabFilters
                     end  
                     if(condition == 3) 
                         if(j == 2)
-                            SxToPlot = SxToPlot*180/pi;
+                            %SxToPlot = SxToPlot*180/pi;
                         end
                     end
-                    subplot(NX,1,j);
+                    subplot(1,NX,j);
                     plot(tToPlot.', MxToPlot.');
                     hold on;
                     plot(tToPlot.', SxToPlot.');
                     legend(strcat('Mx', num2str(j)), strcat('Sx', num2str(j)));
                     if(condition == 1)
-                        str = 'Скалярный пример: ';
+                        str = 'Полиномиальный пример: ';
                     end
                     if(condition == 2)
                         str = 'Осциллятор Ван-дер-Поля: ';
                     end
                     if(condition == 3)
-                        str = 'Спуск ЛА на планету: ';
+                        str = 'Спуск: ';
                     end
                     title(['\fontsize{20}', str, ' N=', int2str(N), ', deltaTime=', num2str(deltaTime), '. ']);
                 end
