@@ -411,15 +411,10 @@ classdef matlabFilters
             Zeta = matlabFilters.a(t, x, condition) - matlabFilters.Xi(t, x, p, condition)*matlabFilters.c(t, x, condition);
         end
         
-%         function [ Pi ] = Pi(t, x, z, p, condition) 
-%             Pi = matlabFilters.Xi(t, z, p, condition)*matlabFilters.Dx(t, x, condition)*matlabFilters.B(t, x, condition) + ...
-%                 matlabFilters.D(t, x, condition)*matlabFilters.Xiz(t, z, p, condition)* ...
-%                 matlabFilters.Xi(t, z, p, condition)*matlabFilters.D(t, x, condition);
-%         end
-
-        function [ dZeta ] = dZeta(t, x, z, p, condition) 
-            dZeta = matlabFilters.Xiz(t, z, p, condition)* matlabFilters.Xi(t, z, p, condition)*matlabFilters.D(t, x, condition)*matlabFilters.D(t, x, condition).';
-            
+        function [ Pi ] = Pi(t, x, z, p, condition) 
+            Pi = matlabFilters.Xi(t, z, p, condition)*matlabFilters.Dx(t, x, condition)*matlabFilters.B(t, x, condition) + ...
+                matlabFilters.D(t, x, condition)*matlabFilters.Xiz(t, z, p, condition)* ...
+                matlabFilters.Xi(t, z, p, condition)*matlabFilters.D(t, x, condition);
         end
         
         % Support functions
@@ -951,12 +946,11 @@ classdef matlabFilters
                         
                         psi_y = (matlabFilters.c(t_tilde, X_tilde(:, i), condition) - ...
                             1/2*matlabFilters.B(t_tilde, X_tilde(:, i), condition)*matlabFilters.Dx(t_tilde, X_tilde(:, i), condition).') * deltaTime + ...
-                            matlabFilters.D(t_tilde, X_tilde(:, i), condition)*deltaV(:, :, i).';
+                            matlabFilters.D(t_tilde, X_tilde(:, i), condition)*deltaV(:, 1, i);
                         
-                        X_H(:, i) = X_H(:, i) + 1/2*(fi + psi - 1/2 * matlabFilters.B(t, X(:, i), condition)* matlabFilters.Bx(t, X(:, i), condition).' *deltaTime);
+                        X_H(:, i) = X_H(:, i) + 1/2*(fi + psi - 1/2 * matlabFilters.Bx(t, X(:, i), condition) * matlabFilters.B(t, X(:, i), condition)*deltaTime);
                         
-
-                        deltaY_H(:, i) = 1/2*(fi_y + psi_y - 1/2 * matlabFilters.B(t, X(:, i), condition)* matlabFilters.Dx(t, X(:, i), condition).' *deltaTime);
+                        deltaY_H(:, i) = 1/2*(fi_y + psi_y - 1/2 * matlabFilters.Dx(t, X(:, i), condition) * matlabFilters.B(t, X(:, i), condition)*deltaTime);
                         
                         
                         if(buildLAOF)
@@ -965,20 +959,20 @@ classdef matlabFilters
                             
                             Z_aofL_H_tilde(:, i) = Z_aofL_H(:, i) + fi_z;
                             
-                            fi_p = matlabFilters.Ksi(t, Z_aofL_H(:, i), P_L_H(:, :, i), condition)*deltaTime;
+                            fi_p = matlabFilters.Ksi(t, Z_aofL_H(:, i), P_L_H(:, :, i), condition);
                             
                             P_L_H_tilde(:, :, i) = P_L_H(:, :, i) + fi_p;
                             
                             psi_z = (matlabFilters.Zeta(t_tilde, Z_aofL_H_tilde(:, i), P_L_H_tilde(:, :, i), condition) - ...
-                                1/2*matlabFilters.dZeta(t_tilde, X_tilde(:, i), Z_aofL_H_tilde(:, i), P_L_H_tilde(:, :, i), condition))*deltaTime + ...
+                                1/2*matlabFilters.Pi(t_tilde, X_tilde(:, i), Z_aofL_H_tilde(:, i), P_L_H_tilde(:, :, i), condition))*deltaTime + ...
                                 matlabFilters.Xi(t_tilde, Z_aofL_H_tilde(:, i), P_L_H_tilde(:, :, i), condition) * ...
-                                (deltaY_H(:, i) - 1/2 * matlabFilters.B(t_tilde, X_tilde(:, i), condition) * ...
-                                matlabFilters.Dx(t_tilde, X_tilde(:, i), condition).' *deltaTime);
-
-                            Z_aofL_H(:, i) = Z_aofL_H(:, i) + 1/2*(fi_z + psi_z - 1/2 * ...
-                                matlabFilters.dZeta(t, X(:, i), Z_aofL_H(:, i), P_L_H(:, :, i),condition)*deltaTime);
+                                (deltaY_H(:, i) - 1/2 * matlabFilters.Dx(t_tilde, X_tilde(:, i), condition) * ...
+                                matlabFilters.B(t_tilde, X_tilde(:, i), condition)*deltaTime);
                             
-                            psi_p = matlabFilters.Ksi(t_tilde, Z_aofL_H_tilde(:, i), P_L_H_tilde(:, :, i), condition) * deltaTime;
+                            Z_aofL_H(:, i) = Z_aofL_H(:, i) + 1/2*(fi_z + psi_z - 1/2 * ...
+                                matlabFilters.Pi(t, X(:, i), Z_aofL_H(:, i), P_L_H(:, :, i),condition)*deltaTime);
+                            
+                            psi_p = matlabFilters.Ksi(t_tilde, Z_aofL_H_tilde(:, i), P_L_H_tilde(:, :, i), condition);
                             
                             P_L_H(:, :, i) = P_L_H(:, :, i) + 1/2*(fi_p + psi_p);
                             
@@ -994,13 +988,13 @@ classdef matlabFilters
                             Z_fosL_H_tilde(:, i) = Z_fosL_H(:, i) + fi_z;
                             
                             psi_z = (matlabFilters.Zeta(t_tilde, Z_fosL_H_tilde(:, i), J_L_tilde(:, :, i), condition) - ...
-                                1/2*matlabFilters.dZeta(t_tilde, X_tilde(:, i), Z_fosL_H_tilde(:, i), J_L_tilde(:, :, i), condition))*deltaTime + ...
+                                1/2*matlabFilters.Pi(t_tilde, X_tilde(:, i), Z_fosL_H_tilde(:, i), J_L_tilde(:, :, i), condition))*deltaTime + ...
                                 matlabFilters.Xi(t_tilde, Z_fosL_H_tilde(:, i), J_L_tilde(:, :, i), condition) * ...
-                                (deltaY_H(:, i) - 1/2 * matlabFilters.B(t_tilde, X_tilde(:, i), condition)* ...
-                                matlabFilters.Dx(t_tilde, X_tilde(:, i), condition).'*deltaTime);
+                                (deltaY_H(:, i) - 1/2 * matlabFilters.Dx(t_tilde, X_tilde(:, i), condition) * ...
+                                matlabFilters.B(t_tilde, X_tilde(:, i), condition)*deltaTime);
                             
                             Z_fosL_H(:, i) = Z_fosL_H(:, i) + 1/2*(fi_z + psi_z - 1/2 * ...
-                                matlabFilters.dZeta(t, X(:, i), Z_fosL_H(:, i), J_L(:, :, i),condition)*deltaTime);
+                                matlabFilters.Pi(t, X(:, i), Z_fosL_H(:, i), J_L(:, :, i),condition)*deltaTime);
                         end
                         
                     end
